@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Beans module manifest">
+  <defs>
+    <path id="bean" d="M4 .5C6.7.5 8 3.1 8 6.1C8 9.1 6.4 11.5 4 11.5C1.6 11.5 0 9.2 0 6.2C0 3.2 1.4.7 4 .5Z"/>
+    <path id="seam" d="M4.5 1.2C2.7 4 5.3 6.3 3.5 10.8"/>
+  </defs>
+  <g fill="#B86F3C" stroke="#6D3927" stroke-width=".5" stroke-linejoin="round">
+    <use href="#bean" transform="translate(12 2)"/>
+    <use href="#bean" transform="translate(5.5 16) rotate(-20 4 6)"/>
+    <use href="#bean" transform="translate(18.5 16) rotate(20 4 6)"/>
+  </g>
+  <g fill="none" stroke="#241411" stroke-width="1.25" stroke-linecap="round">
+    <use href="#seam" transform="translate(12 2)"/>
+    <use href="#seam" transform="translate(5.5 16) rotate(-20 4 6)"/>
+    <use href="#seam" transform="translate(18.5 16) rotate(20 4 6)"/>
+  </g>
+</svg>
