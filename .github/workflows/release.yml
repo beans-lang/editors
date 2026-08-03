@@ -59,6 +59,20 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # Release notes are written in CHANGELOG.md, not generated from commit
+      # subjects. Fail early if this version has no entry, so a release never
+      # goes out with nothing to say.
+      - name: Build the release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: node scripts/release-notes.mjs "$VERSION" --out RELEASE_NOTES.md
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: RELEASE_NOTES.md
+          if-no-files-found: error
+
       # A .vsix that installs and then fails to activate is the failure mode
       # worth guarding: the extension's one runtime dependency is hoisted by
       # the npm workspace, so it has to be bundled rather than vendored.
@@ -179,24 +193,12 @@ jobs:
 
       - uses: softprops/action-gh-release@v3
         with:
+          name: v${{ needs.vsix.outputs.version }}
           files: |
             beans-vscode-*.vsix
             beans-zed-*.zip
           fail_on_unmatched_files: true
-          generate_release_notes: true
-          body: |
-            ## Installing
-
-            **VS Code** — download the `.vsix` and run:
-
-            ```bash
-            code --install-extension beans-vscode-${{ needs.vsix.outputs.version }}.vsix
-            ```
-
-            **Zed** — unzip `beans-zed-*.zip`, then use **Install Dev Extension**
-            and choose the unzipped `zed` directory. Building it needs Rust with
-            the `wasm32-wasip2` target.
-
-            Both need the `beansc` compiler. There is no published binary yet —
-            build it from [beans-lang/beans](https://github.com/beans-lang/beans)
-            with `make`.
+          # The notes come from CHANGELOG.md. Generating them from commit
+          # subjects would put internal detail in front of users.
+          generate_release_notes: false
+          body_path: RELEASE_NOTES.md

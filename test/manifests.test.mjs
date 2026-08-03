@@ -51,6 +51,41 @@ function parseToml(text) {
   return root;
 }
 
+describe('versioning', () => {
+  const version = readJson('package.json').version;
+
+  test('every manifest carries the same version', () => {
+    // The release workflow refuses a tag that disagrees with
+    // vscode/package.json, so a mismatch here would fail a release rather
+    // than ship a half-bumped set of manifests.
+    assert.equal(readJson('vscode', 'package.json').version, version, 'vscode/package.json');
+    assert.equal(
+      readJson('tree-sitter-beans', 'package.json').version,
+      version,
+      'tree-sitter-beans/package.json',
+    );
+    assert.equal(
+      readJson('tree-sitter-beans', 'tree-sitter.json').metadata.version,
+      version,
+      'tree-sitter-beans/tree-sitter.json',
+    );
+
+    const zed = parseToml(readText('zed', 'extension.toml'));
+    assert.equal(zed.version, version, 'zed/extension.toml');
+
+    const cargo = parseToml(readText('zed', 'Cargo.toml'));
+    assert.equal(cargo.package.version, version, 'zed/Cargo.toml');
+  });
+
+  test('the changelog has an entry for this version', () => {
+    // Release notes are extracted from here, so a missing section means a
+    // release with nothing to say.
+    const changelog = readText('CHANGELOG.md');
+    const heading = new RegExp(`^## \\[${version.replace(/\./g, '\\.')}\\]`, 'm');
+    assert.match(changelog, heading, `CHANGELOG.md needs a section for ${version}`);
+  });
+});
+
 describe('shared language data', () => {
   test('records the exact 33 reserved keywords', () => {
     // The compiler's token.h says so in as many words: "tokens with reserved

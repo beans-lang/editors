@@ -22,3 +22,6 @@ tree-sitter-beans/build/
 tree-sitter-beans/*.wasm
 tree-sitter-beans/target/
 tree-sitter-beans/bindings/
+
+# Generated at release time from CHANGELOG.md
+RELEASE_NOTES.md
