@@ -41,48 +41,47 @@ cd editors/tree-sitter-beans
 clones this repository and compiles the parser from source, so the generated
 parser has to be in git.
 
-## Where the keywords come from
+## Keywords and token lists
 
-Not from this directory. `grammar.js` reads `grammar-data.json`, which is
-generated from `editors/shared/language.json`, which records the compiler's own
-keyword table as its source. `editors/scripts/sync-beans.mjs` diffs it against a
-beans checkout.
+These are not defined here. `grammar.js` reads `grammar-data.json`, generated
+from `editors/shared/language.json`, which records the compiler's own keyword
+table as its source. `editors/scripts/sync-beans.mjs` checks the two for drift.
 
-Adding a keyword means editing `shared/language.json`, running
-`npm run generate`, then `tree-sitter generate`.
+To add a keyword: edit `shared/language.json`, run `npm run generate`, then
+regenerate the parser.
 
-## Notable decisions
+## Design notes
 
-**Newlines are whitespace.** Beans ends statements at a newline, Go-style. This
-grammar puts `\n` in `extras` instead of modelling the lexer's terminator
+Read these before changing `grammar.js`.
+
+**Newlines are whitespace.** Beans ends statements at a newline, Go-style. The
+grammar puts `\n` in `extras` rather than modelling the lexer's terminator
 insertion, because Beans always brackets blocks with braces and never starts a
 statement with an infix operator. `return` and `fn` are `prec.right` so they
 take their operand and body greedily. The whole-repository corpus run is what
-justifies this rather than a guess.
+validates this.
 
 **Block comments need an external scanner.** `/* /* */ */` nests, so the
 closing delimiter cannot be found with a regular expression. `src/scanner.c`
-counts depth, exactly like `Lexer::skip_block_comment` in the compiler. An
-unterminated comment runs to end of input, which is what the compiler does and
-what looks least broken in an editor.
+counts depth, matching `Lexer::skip_block_comment` in the compiler. An
+unterminated comment runs to end of input, which is what the compiler does.
 
 **`primitive_type` carries no token precedence.** `int` is a prefix of
-`interface`. Raising `int` above the other keywords makes the keyword lexer stop
-at `int` and never reach `interface`, and every `interface` declaration in the
-repository fails to parse. This cost an afternoon; the comment in `grammar.js`
-is there so it costs nobody else one.
+`interface`. Raising `int` above the other keywords makes the keyword lexer
+stop at `int` and never reach `interface`, and every `interface` declaration in
+the repository then fails to parse.
 
 **Contextual modifiers are scoped tightly.** `align`, `packed`, `unique`,
-`feature` and `opaque` are ordinary identifiers outside a declaration's modifier
-list — the compiler's own `layout.b` has a field called `align`, and
+`feature` and `opaque` are ordinary identifiers outside a declaration's
+modifier list — the compiler's own `layout.b` has a field called `align`, and
 `signal.b` has a local called `packed`. A keyword the parser allows in a
 position is a keyword the lexer will produce there, so the modifier sets are
 narrowed per declaration and `align(` is lexed as a single token.
 
-**Struct literals lose ties, map literals lose ties.** `Name { ... }` is a
-struct literal wherever that reading completes; in `match x as? Circle { ... }`
-it does not, because match arms are not `field: value`, so GLR drops it. This is
-the same call the compiler's `StructGuard` makes.
+**Struct and map literals lose ties.** `Name { ... }` is a struct literal
+wherever that reading completes; in `match x as? Circle { ... }` it does not,
+because match arms are not `field: value`, so GLR drops it. This matches the
+compiler's `StructGuard`.
 
 ## Queries
 

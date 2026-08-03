@@ -118,13 +118,11 @@ node scripts/pin-grammar.mjs --local   # file:// URL at the current HEAD
 Run `--rev` again before releasing, so the published extension references a
 commit everyone can fetch.
 
-### Why the revision is never hand-edited
-
-`pin-grammar.mjs` verifies that the commit it writes actually contains
-`tree-sitter-beans/src/parser.c`. A plausible-looking but wrong SHA is worse
-than no SHA at all: it fails at install time with a confusing checkout error
-rather than an obvious one. The manifest test accepts only a full 40-character
-SHA or the literal `UNPINNED`, and nothing in between.
+> Always pin through the script rather than editing `extension.toml` by hand.
+> A wrong revision fails at install time with a confusing checkout error, so
+> `pin-grammar.mjs` verifies the commit carries the generated parser, and the
+> manifest test accepts only a full 40-character SHA or the literal
+> `UNPINNED`.
 
 ## Development
 
@@ -172,13 +170,13 @@ zed/
 The `.scm` files and `semantic_token_rules.json` are generated from
 `editors/shared/language.json` — edit that and run `npm run generate`.
 
-## Not included
+## Limitations
 
-- **A `beans.pot` language.** Zed requires a Tree-sitter grammar for every
-  language, and the manifest format would need its own. `.b` files are what
-  matter; the manifest is a handful of lines. VS Code has one because it does
-  not require a grammar.
-- **An icon theme.** Zed icon themes replace the whole icon set — there is no
-  way to add one file type to the user's existing theme, so a Beans-only theme
-  would blank every other file's icon. The assets are in `editors/icons/zed/`
-  for anyone building a full theme.
+**No `beans.pot` language.** Zed requires a Tree-sitter grammar for every
+language, and the manifest format would need one of its own. The VS Code
+extension supports it because VS Code does not have that requirement.
+
+**No icon theme.** Zed icon themes replace the entire icon set rather than
+extending it, so a Beans-only theme would leave every other file without an
+icon. The assets are in [`../icons/`](../icons/) for anyone building a
+complete theme.

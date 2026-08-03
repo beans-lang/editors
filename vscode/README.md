@@ -73,19 +73,17 @@ If nothing happens, the output channel says what was tried and where.
 
 ### Tests
 
-The tests live at the `editors/` root because they cover more than this
+The tests live at the `editors/` root, because they cover more than this
 extension:
 
 ```bash
-npm test                                   # everything
-npm run test:resolve                       # compiler path resolution
-npm run test:grammar                       # TextMate scopes
-npm run test:lsp                           # a real beansc lsp session
+npm test                # everything
+npm run test:resolve    # compiler path resolution
+npm run test:grammar    # TextMate scopes
+npm run test:lsp        # a real beansc lsp session
 ```
 
-`test/vscode-resolve.test.mjs` runs against the compiled `out/beansc.js`, so it
-tests what ships. `src/beansc.ts` imports nothing from `vscode` for exactly
-that reason.
+See [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## Packaging
 
@@ -104,14 +102,14 @@ code --install-extension beans-vscode.vsix
 publication, run `npm install --omit=dev` inside `vscode/` first so the
 dependency is present in `vscode/node_modules`, then package without that flag.
 
-## What this extension does not do
+## Scope
 
-It registers no language feature providers of its own. If a feature is missing,
-it is missing from `beansc lsp`, and that is where it should be added — a
+The extension registers no language feature providers of its own. A missing
+feature is missing from `beansc lsp`, and that is where it should be added; a
 second feature engine in the editor would drift from the compiler. See the
 feature matrix in the [top-level README](../README.md).
 
-It also does not claim browser support: `beansc lsp` is a native executable, so
+Browser-only VS Code is not supported. `beansc lsp` is a native executable, so
 the document selector is `scheme: file` and `virtualWorkspaces` is declared
 unsupported.
 
