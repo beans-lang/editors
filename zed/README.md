@@ -21,6 +21,11 @@ language server.
   rustup target add wasm32-wasip2
   ```
 
+  A Homebrew or distro Rust has host std only, so `rustup` is what you want
+  here. On macOS, note that `brew install rustup` is keg-only and creates no
+  `~/.cargo/bin` shims — `npm run check:rust` finds the toolchain under
+  `~/.rustup/toolchains` regardless.
+
 ## Settings
 
 Zed configures language servers under `lsp`:
@@ -141,8 +146,10 @@ cargo build --release --target wasm32-wasip2
 ```
 
 The host-target `cargo check` is what proves the code compiles against
-`zed_extension_api`. The `wasm32-wasip2` build is what Zed itself runs; the
-check script skips it when the target is not installed.
+`zed_extension_api`. The `wasm32-wasip2` build produces what Zed actually
+loads — a WebAssembly **component** (binary version `0x1000d`), not a core
+module. `npm run check:rust` runs both, and skips the Wasm build with a clear
+message when no toolchain has the target.
 
 ## Files
 
