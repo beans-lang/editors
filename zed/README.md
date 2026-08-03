@@ -69,37 +69,7 @@ in the [top-level README](../README.md).
 
 ## Installing as a dev extension
 
-The grammar has to be pinned first. Zed fetches Tree-sitter grammars by cloning
-a git repository at an exact revision, so it cannot read a working copy.
-
-**Working locally, nothing pushed:**
-
-```bash
-cd editors
-npm run grammar                       # regenerate + tree-sitter generate
-git add tree-sitter-beans
-git commit -m "Add the Beans tree-sitter grammar"
-node scripts/pin-grammar.mjs --local  # file:// URL at the current HEAD
-```
-
-**For a release, from a pushed commit:**
-
-```bash
-git push
-node scripts/pin-grammar.mjs --rev <sha>
-```
-
-`--rev` refuses a commit that does not contain
-`tree-sitter-beans/src/parser.c`, so a pin that would fail at install time
-fails here instead.
-
-Check the current state at any time:
-
-```bash
-node scripts/pin-grammar.mjs --status
-```
-
-Then, in Zed:
+The grammar is already pinned to a pushed commit, so this just works:
 
 1. Open the command palette and run **zed: extensions**.
 2. Click **Install Dev Extension**.
@@ -110,13 +80,46 @@ Zed compiles `src/lib.rs` to Wasm and builds the grammar from
 
 Open a `.b` file. It highlights immediately, and `beansc lsp` starts behind it.
 
-### Why `rev = "UNPINNED"` ships in the manifest
+## Re-pinning after a grammar change
 
-`extension.toml` is committed with `rev = "UNPINNED"` rather than a
-plausible-looking SHA. A wrong revision fails at install time with a confusing
-checkout error; an obviously-unset one fails with an obvious one. The
-`--status` check and the manifest test both accept only a full 40-character SHA
-or the literal `UNPINNED`.
+Zed fetches Tree-sitter grammars by cloning a git repository at an exact
+revision, so it cannot read a working copy. Any change to `grammar.js` needs a
+new pushed commit and a new pin.
+
+```bash
+cd editors
+npm run grammar                       # regenerate + tree-sitter generate
+git commit -am "Update the Beans grammar"
+git push
+node scripts/pin-grammar.mjs --rev "$(git rev-parse HEAD)"
+```
+
+`--rev` refuses a commit that does not contain
+`tree-sitter-beans/src/parser.c`, so a pin that would fail at install time
+fails here instead. Check the current state at any time:
+
+```bash
+node scripts/pin-grammar.mjs --status
+```
+
+To iterate on the grammar without pushing anything, point the pin at this
+checkout instead — Zed accepts a `file://` URL:
+
+```bash
+git commit -am "Work in progress on the grammar"
+node scripts/pin-grammar.mjs --local   # file:// URL at the current HEAD
+```
+
+Run `--rev` again before releasing, so the published extension references a
+commit everyone can fetch.
+
+### Why the revision is never hand-edited
+
+`pin-grammar.mjs` verifies that the commit it writes actually contains
+`tree-sitter-beans/src/parser.c`. A plausible-looking but wrong SHA is worse
+than no SHA at all: it fails at install time with a confusing checkout error
+rather than an obvious one. The manifest test accepts only a full 40-character
+SHA or the literal `UNPINNED`, and nothing in between.
 
 ## Development
 

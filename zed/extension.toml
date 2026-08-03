@@ -11,14 +11,15 @@ repository = "https://github.com/beans-lang/editors"
 # it clones `repository` at `rev`, joins `path`, then compiles `src/parser.c`
 # and `src/scanner.c`.
 #
-# `rev` MUST be a commit that exists on the remote and contains the generated
-# `tree-sitter-beans/src/parser.c`. It is deliberately left unset below rather
-# than filled with a plausible-looking SHA — a wrong revision would fail at
-# install time with a confusing checkout error instead of an obvious one.
+# `rev` MUST be a pushed commit that contains the generated
+# `tree-sitter-beans/src/parser.c`. Do not hand-edit it — a revision that does
+# not carry the parser fails at install time with a confusing checkout error.
 #
-# To make this installable:
-#   1. commit tree-sitter-beans/ (including src/parser.c) and push it
-#   2. run `node scripts/pin-grammar.mjs --rev <sha>`
+# After changing the grammar: regenerate, commit, push, then re-pin.
+#   npm run grammar
+#   git commit -am "..." && git push
+#   node scripts/pin-grammar.mjs --rev <sha>     # refuses a commit without the parser
+#   node scripts/pin-grammar.mjs --status
 #
 # To work on it locally without pushing anything:
 #   node scripts/pin-grammar.mjs --local
@@ -26,7 +27,7 @@ repository = "https://github.com/beans-lang/editors"
 # See editors/zed/README.md.
 [grammars.beans]
 repository = "https://github.com/beans-lang/editors"
-rev = "UNPINNED"
+rev = "aae2e5378d3c69063999554b47d2e0e5a2fe0c3b"
 path = "tree-sitter-beans"
 
 [language_servers.beansc]
