@@ -1,7 +1,7 @@
 {
   "name": "beans-vscode",
   "displayName": "Beans",
-  "description": "Beans language support — syntax highlighting and language intelligence from the compiler's built-in language server.",
+  "description": "Beans language support \u2014 syntax highlighting and language intelligence from the compiler's built-in language server.",
   "version": "0.1.0",
   "publisher": "beans-lang",
   "license": "Apache-2.0",
@@ -25,7 +25,7 @@
   "engines": {
     "vscode": "^1.91.0"
   },
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "activationEvents": [
     "workspaceContains:**/*.b",
     "workspaceContains:**/beans.pot"
@@ -90,7 +90,7 @@
         "beans.compiler.path": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Absolute or workspace-relative path to the `beansc` executable. Supports `~` and `${workspaceFolder}`. When empty, the extension checks the `BEANSC` environment variable, then the workspace root and `PATH`, then a local development build. A path containing spaces needs no quoting — the compiler is spawned directly, never through a shell.",
+          "markdownDescription": "Absolute or workspace-relative path to the `beansc` executable. Supports `~` and `${workspaceFolder}`. When empty, the extension checks the `BEANSC` environment variable, then the workspace root and `PATH`, then a local development build. A path containing spaces needs no quoting \u2014 the compiler is spawned directly, never through a shell.",
           "scope": "machine-overridable"
         },
         "beans.compiler.searchDevelopmentPaths": {
@@ -168,12 +168,13 @@
     ]
   },
   "scripts": {
-    "build": "tsc --project ./",
-    "watch": "tsc --watch --project ./",
+    "build": "tsc --project ./ && node esbuild.mjs",
+    "bundle": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
     "lint": "eslint src",
     "test": "node --test ../test/vscode-resolve.test.mjs",
-    "package": "vsce package --no-dependencies --out beans-vscode.vsix",
-    "vscode:prepublish": "npm run build"
+    "package": "npm run build && npm run bundle && vsce package --no-dependencies --out beans-vscode.vsix",
+    "vscode:prepublish": "npm run build && npm run bundle"
   },
   "dependencies": {
     "vscode-languageclient": "^10.1.0"
@@ -183,6 +184,7 @@
     "@types/node": "^22.10.2",
     "@types/vscode": "^1.91.0",
     "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.65.0"

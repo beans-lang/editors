@@ -36,6 +36,11 @@ const steps = [
     args: ['--test', 'test/manifests.test.mjs'],
   },
   {
+    name: 'the packaged bundle loads',
+    command: 'node',
+    args: ['--test', 'test/bundle.test.mjs'],
+  },
+  {
     name: 'textmate grammar fixtures',
     command: 'node',
     args: ['--test', 'test/tmgrammar.test.mjs'],

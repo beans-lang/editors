@@ -31,7 +31,15 @@ setting.
 
 ### VS Code
 
-Package and install the extension:
+Download `beans-vscode-<version>.vsix` from the
+[latest release](https://github.com/beans-lang/editors/releases/latest) and
+install it:
+
+```bash
+code --install-extension beans-vscode-<version>.vsix
+```
+
+Or build it yourself:
 
 ```bash
 git clone https://github.com/beans-lang/editors
@@ -42,15 +50,16 @@ code --install-extension vscode/beans-vscode.vsix
 
 ### Zed
 
-Zed builds extensions from source, which needs Rust with the `wasm32-wasip2`
+Zed builds extensions from source, so this needs Rust with the `wasm32-wasip2`
 target:
 
 ```bash
 rustup target add wasm32-wasip2
 ```
 
-Then open the command palette, run **zed: extensions**, click
-**Install Dev Extension**, and choose the `zed` directory of this repository.
+Open the command palette, run **zed: extensions**, click
+**Install Dev Extension**, and choose the `zed` directory — either from a clone
+of this repository or from the unzipped `beans-zed-<version>.zip` in a release.
 
 ## Features
 

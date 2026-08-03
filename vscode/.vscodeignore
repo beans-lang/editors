@@ -1,11 +1,13 @@
+# Sources and build intermediates: the shipped code is the esbuild bundle in
+# dist/, so nothing under src/ or out/ needs to travel.
+src/**
+out/**
+node_modules/**
 .vscode/**
 .vscode-test/**
-src/**
-out/**/*.map
-out/**/*.d.ts
-node_modules/**
 tsconfig.json
 eslint.config.mjs
+esbuild.mjs
 **/*.ts
-**/.eslintrc*
+**/*.map
 .gitignore

@@ -1,0 +1,202 @@
+name: Release
+
+# Builds the installable artifacts and attaches them to a GitHub Release.
+#
+# Nothing here publishes to a marketplace. That is a separate, manual workflow
+# (publish.yml) so a tag push can never put something in front of users by
+# accident.
+#
+# Zed has no installable artifact: extensions are distributed only through the
+# Zed registry, which builds them from source. The zip produced here is for
+# "Install Dev Extension", and the job prints the registry submission steps.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build (defaults to the manifest version)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  vsix:
+    name: VS Code extension
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Resolve the version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          manifest=$(node -p "require('./vscode/package.json').version")
+          if [ -n "$INPUT_VERSION" ]; then
+            version="$INPUT_VERSION"
+          elif [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            version="${REF_NAME#v}"
+          else
+            version="$manifest"
+          fi
+          if [ "$version" != "$manifest" ]; then
+            echo "::error::version $version does not match vscode/package.json ($manifest)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # A .vsix that installs and then fails to activate is the failure mode
+      # worth guarding: the extension's one runtime dependency is hoisted by
+      # the npm workspace, so it has to be bundled rather than vendored.
+      - name: Verify the bundle before packaging
+        run: |
+          npm run generate:check
+          npm --workspace beans-vscode run build
+          npm --workspace beans-vscode run lint
+          npm run test:bundle
+
+      - name: Package
+        run: npm --workspace beans-vscode run package
+
+      - name: Rename with the version
+        id: artifact
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: mv vscode/beans-vscode.vsix "beans-vscode-${VERSION}.vsix"
+
+      - name: Check the archive contents
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          unzip -l "beans-vscode-${VERSION}.vsix"
+          # The bundle, the grammars and the icons all have to be in there.
+          for entry in \
+            extension/dist/extension.js \
+            extension/syntaxes/beans.tmLanguage.json \
+            extension/syntaxes/beans-manifest.tmLanguage.json \
+            extension/language-configuration.json \
+            extension/icons/beans-b-dark.svg
+          do
+            unzip -l "beans-vscode-${VERSION}.vsix" | grep -q "$entry" \
+              || { echo "::error::$entry missing from the .vsix"; exit 1; }
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beans-vscode
+          path: beans-vscode-*.vsix
+          if-no-files-found: error
+
+  zed:
+    name: Zed extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install the Wasm target
+        run: rustup target add wasm32-wasip2
+
+      - run: npm ci
+
+      # Zed builds the extension from source when it is installed, so the point
+      # here is to prove it builds — and that the grammar revision points at a
+      # commit that actually carries the generated parser.
+      - name: Build and check
+        run: |
+          npm run check:rust
+          node scripts/pin-grammar.mjs --status
+
+      - name: Package the extension directory
+        id: package
+        run: |
+          version=$(grep -m1 '^version' zed/extension.toml | cut -d'"' -f2)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # Zed reads the extension from a directory; ship one that can be
+          # unzipped and pointed at with "Install Dev Extension".
+          zip -r "beans-zed-${version}.zip" zed \
+            -x 'zed/target/*' 'zed/grammars/*'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beans-zed
+          path: beans-zed-*.zip
+          if-no-files-found: error
+
+      - name: Registry submission reminder
+        env:
+          ZED_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          {
+            echo "### Publishing to the Zed extension registry"
+            echo
+            echo "Zed has no installable artifact — the registry builds from source."
+            echo "To publish, open a PR against [zed-industries/extensions](https://github.com/zed-industries/extensions):"
+            echo
+            echo '```sh'
+            echo "git submodule add https://github.com/${GITHUB_REPOSITORY}.git extensions/beans"
+            echo '```'
+            echo
+            echo 'Then add to `extensions.toml`:'
+            echo
+            echo '```toml'
+            echo '[beans]'
+            echo 'submodule = "extensions/beans"'
+            echo 'path = "zed"'
+            echo "version = \"${ZED_VERSION}\""
+            echo '```'
+            echo
+            echo 'and run `pnpm sort-extensions`.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Attach to the release
+    if: github.ref_type == 'tag'
+    needs: [vsix, zed]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            beans-vscode-*.vsix
+            beans-zed-*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            ## Installing
+
+            **VS Code** — download the `.vsix` and run:
+
+            ```bash
+            code --install-extension beans-vscode-${{ needs.vsix.outputs.version }}.vsix
+            ```
+
+            **Zed** — unzip `beans-zed-*.zip`, then use **Install Dev Extension**
+            and choose the unzipped `zed` directory. Building it needs Rust with
+            the `wasm32-wasip2` target.
+
+            Both need the `beansc` compiler. There is no published binary yet —
+            build it from [beans-lang/beans](https://github.com/beans-lang/beans)
+            with `make`.

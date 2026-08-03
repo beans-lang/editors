@@ -27,6 +27,7 @@
     "pin-grammar": "node scripts/pin-grammar.mjs",
     "test": "node scripts/run-tests.mjs",
     "test:manifests": "node --test test/manifests.test.mjs",
+    "test:bundle": "node --test test/bundle.test.mjs",
     "test:grammar": "node --test test/tmgrammar.test.mjs",
     "test:resolve": "node --test test/vscode-resolve.test.mjs",
     "test:lsp": "node --test test/lsp-smoke.test.mjs",

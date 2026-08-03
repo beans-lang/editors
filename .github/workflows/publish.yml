@@ -1,0 +1,97 @@
+name: Publish to marketplaces
+
+# Manual only, and never triggered by a tag. Publishing puts the extension in
+# front of users and cannot be undone by deleting a release, so it stays a
+# deliberate act: someone runs this, names the version, and confirms the
+# target.
+#
+# Requires secrets that are not set by default:
+#   VSCE_PAT   — Visual Studio Marketplace personal access token
+#   OVSX_PAT   — Open VSX access token
+#
+# Zed is not here. Its registry does not accept uploads; publishing is a pull
+# request against zed-industries/extensions. See CONTRIBUTING.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish (must match vscode/package.json)
+        required: true
+        type: string
+      target:
+        description: Where to publish
+        required: true
+        default: both
+        type: choice
+        options: [both, vs-marketplace, open-vsx]
+      dry_run:
+        description: Build and validate without publishing
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: marketplace
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check the version matches the manifest
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          manifest=$(node -p "require('./vscode/package.json').version")
+          if [ "$INPUT_VERSION" != "$manifest" ]; then
+            echo "::error::asked to publish $INPUT_VERSION but vscode/package.json says $manifest"
+            exit 1
+          fi
+
+      - name: Test
+        run: npm test
+
+      - name: Package
+        run: npm --workspace beans-vscode run package
+
+      - name: Dry run
+        if: inputs.dry_run
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          echo "Dry run: would publish $INPUT_VERSION to $TARGET." >> "$GITHUB_STEP_SUMMARY"
+          unzip -l vscode/beans-vscode.vsix >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to the Visual Studio Marketplace
+        if: ${{ !inputs.dry_run && (inputs.target == 'both' || inputs.target == 'vs-marketplace') }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "${VSCE_PAT:-}" ]; then
+            echo "::error::VSCE_PAT is not set"
+            exit 1
+          fi
+          npx --workspace beans-vscode vsce publish --no-dependencies \
+            --packagePath vscode/beans-vscode.vsix
+
+      - name: Publish to Open VSX
+        if: ${{ !inputs.dry_run && (inputs.target == 'both' || inputs.target == 'open-vsx') }}
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "${OVSX_PAT:-}" ]; then
+            echo "::error::OVSX_PAT is not set"
+            exit 1
+          fi
+          npx ovsx publish vscode/beans-vscode.vsix --pat "$OVSX_PAT"

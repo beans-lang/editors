@@ -5,6 +5,7 @@ node_modules/
 
 # VS Code extension build output
 vscode/out/
+vscode/dist/
 vscode/*.vsix
 
 # Rust / Zed extension build output

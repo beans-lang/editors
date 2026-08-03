@@ -39,10 +39,11 @@ jobs:
       - name: Generated assets are up to date
         run: npm run generate:check
 
-      - name: Build and lint the VS Code extension
+      - name: Build, bundle and lint the VS Code extension
         run: |
           npm --workspace beans-vscode run build
           npm --workspace beans-vscode run lint
+          npm --workspace beans-vscode run package
 
       - name: Regenerate the tree-sitter parser
         run: npm --workspace tree-sitter-beans run build

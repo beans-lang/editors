@@ -172,20 +172,65 @@ builtins. The LSP smoke test asserts the behaviour both implementations share.
 
 ## Releasing
 
-**VS Code**
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds both
+artifacts, verifies them, and attaches them to the GitHub Release:
+
+| Artifact | What it is |
+| --- | --- |
+| `beans-vscode-<version>.vsix` | Installable with `code --install-extension` |
+| `beans-zed-<version>.zip` | The extension directory, for **Install Dev Extension** |
 
 ```bash
-npm --workspace beans-vscode run package
+# bump the version in vscode/package.json and zed/extension.toml first
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
-For publication, run `npm install --omit=dev` inside `vscode/` first so
-`vscode-languageclient` is present in `vscode/node_modules`, then package
-without `--no-dependencies`.
+The workflow refuses to build if the tag and `vscode/package.json` disagree.
 
-**Zed**
+### The .vsix must be bundled, not vendored
 
-The grammar revision must point at a pushed commit containing the generated
-parser:
+`vscode-languageclient` is the extension's only runtime dependency, and this
+npm workspace hoists it to the repository root — so `vsce package` cannot find
+it under `vscode/node_modules`. A `.vsix` built without bundling installs fine
+and then fails to activate with "Cannot find module".
+
+`vscode/esbuild.mjs` bundles it into `dist/extension.js` instead, with `vscode`
+left external because the editor provides it. `test/bundle.test.mjs` loads the
+built bundle with only `vscode` stubbed, so an unresolved import fails in CI
+rather than in someone's editor.
+
+### Marketplace publishing
+
+`.github/workflows/publish.yml` is manual-only and never runs on a tag, because
+publishing cannot be undone by deleting a release. It defaults to a dry run and
+needs `VSCE_PAT` (Visual Studio Marketplace) or `OVSX_PAT` (Open VSX) in the
+`marketplace` environment.
+
+### The Zed registry
+
+Zed has no installable artifact and no upload API — the registry builds
+extensions from source. Publishing is a pull request against
+[`zed-industries/extensions`](https://github.com/zed-industries/extensions):
+
+```sh
+git submodule add https://github.com/beans-lang/editors.git extensions/beans
+```
+
+```toml
+[beans]
+submodule = "extensions/beans"
+path = "zed"
+version = "0.1.0"
+```
+
+Then run `pnpm sort-extensions`. The `path` field is what lets the extension
+live in a subdirectory. Note that Zed requires the licence at that path, which
+is why `zed/LICENSE` is a symlink to the repository's.
+
+### Re-pinning the grammar
+
+Zed fetches Tree-sitter grammars by cloning at an exact revision, so any
+grammar change needs a new pushed commit and a new pin **before** tagging:
 
 ```bash
 npm run grammar
@@ -196,4 +241,5 @@ node scripts/pin-grammar.mjs --status
 
 `--rev` refuses a commit that does not carry
 `tree-sitter-beans/src/parser.c`, so a pin that would fail at install time
-fails here instead.
+fails here instead. The release workflow runs `--status` and fails if the pin
+is not usable.
