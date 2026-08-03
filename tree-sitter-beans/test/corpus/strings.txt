@@ -1,0 +1,168 @@
+================================================================================
+Plain string
+================================================================================
+
+fn main() {
+    io.println("hello")
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (string_literal)))))))
+
+================================================================================
+Every escape the lexer accepts
+================================================================================
+
+fn main() {
+    io.println("\n \t \r \0 \\ \" \{ \}")
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (string_literal
+              (escape_sequence)
+              (escape_sequence)
+              (escape_sequence)
+              (escape_sequence)
+              (escape_sequence)
+              (escape_sequence)
+              (escape_sequence)
+              (escape_sequence))))))))
+
+================================================================================
+Interpolation
+================================================================================
+
+fn main() {
+    io.println("hi {name}, total {price * qty}")
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (string_literal
+              (interpolation
+                (identifier))
+              (interpolation
+                (binary_expression
+                  (identifier)
+                  (identifier))))))))))
+
+================================================================================
+Interpolation containing another string
+================================================================================
+
+fn main() {
+    io.println("[{fmt.pad_left("42", 8)}]")
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (string_literal
+              (interpolation
+                (call_expression
+                  (field_expression
+                    (identifier)
+                    (identifier))
+                  (argument_list
+                    (string_literal)
+                    (integer_literal)))))))))))
+
+================================================================================
+Format specs
+================================================================================
+
+fn main() {
+    io.println("{x:8} {x:-8} {pi:.2} {pi:8.2}")
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (string_literal
+              (interpolation
+                (identifier)
+                (format_spec))
+              (interpolation
+                (identifier)
+                (format_spec))
+              (interpolation
+                (identifier)
+                (format_spec))
+              (interpolation
+                (identifier)
+                (format_spec)))))))))
+
+================================================================================
+A bare closing brace is ordinary text
+================================================================================
+
+fn main() {
+    let closing: string = "}"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (string_literal)))))

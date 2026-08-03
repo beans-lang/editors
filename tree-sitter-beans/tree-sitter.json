@@ -1,0 +1,37 @@
+{
+  "grammars": [
+    {
+      "name": "beans",
+      "camelcase": "Beans",
+      "scope": "source.beans",
+      "path": ".",
+      "file-types": ["b"],
+      "injection-regex": "^beans$",
+      "highlights": ["queries/highlights.scm"],
+      "injections": ["queries/injections.scm"]
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "Apache-2.0",
+    "description": "Beans grammar for tree-sitter",
+    "authors": [
+      {
+        "name": "The Beans authors"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/beans-lang/editors"
+    }
+  },
+  "bindings": {
+    "c": false,
+    "go": false,
+    "node": false,
+    "python": false,
+    "rust": false,
+    "swift": false,
+    "kotlin": false,
+    "zig": false
+  }
+}

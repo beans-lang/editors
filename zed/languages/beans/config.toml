@@ -1,0 +1,27 @@
+name = "Beans"
+grammar = "beans"
+path_suffixes = ["b"]
+
+# Beans has `//` line comments and `/* */` block comments; block comments nest,
+# which the grammar's external scanner handles.
+line_comments = ["// "]
+block_comment = ["/* ", " */"]
+
+# Four spaces, no tabs — what every file in the beans repository uses.
+tab_size = 4
+hard_tabs = false
+
+autoclose_before = ";:.,=}])> \n\t"
+word_characters = ["_"]
+
+brackets = [
+  { start = "{", end = "}", close = true, newline = true },
+  { start = "[", end = "]", close = true, newline = true },
+  { start = "(", end = ")", close = true, newline = true },
+  { start = "\"", end = "\"", close = true, newline = false, not_in = ["string", "comment"] },
+]
+
+# A newline ends a statement, so a line that opens a brace is the only thing
+# that should deepen the indent.
+increase_indent_pattern = "^.*(\\{[^}\"']*|\\([^)\"']*|\\[[^\\]\"']*)$"
+decrease_indent_pattern = "^\\s*[)\\]}]"

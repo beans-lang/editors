@@ -1,0 +1,212 @@
+================================================================================
+Option and Result patterns
+================================================================================
+
+fn main() {
+    match a {
+        some(value) => { io.println("match {value}") }
+        none => { io.println("bad") }
+    }
+    match parse_age(input) {
+        ok(n)  => io.println("age {n}"),
+        err(e) => io.println("bad: {e.msg}"),
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (match_expression
+          (identifier)
+          (match_block
+            (match_arm
+              (variant_pattern
+                (identifier)
+                (pattern_binding
+                  (identifier)))
+              (block
+                (expression_statement
+                  (call_expression
+                    (field_expression
+                      (identifier)
+                      (identifier))
+                    (argument_list
+                      (string_literal
+                        (interpolation
+                          (identifier))))))))
+            (match_arm
+              (identifier)
+              (block
+                (expression_statement
+                  (call_expression
+                    (field_expression
+                      (identifier)
+                      (identifier))
+                    (argument_list
+                      (string_literal)))))))))
+      (expression_statement
+        (match_expression
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)))
+          (match_block
+            (match_arm
+              (variant_pattern
+                (identifier)
+                (pattern_binding
+                  (identifier)))
+              (call_expression
+                (field_expression
+                  (identifier)
+                  (identifier))
+                (argument_list
+                  (string_literal
+                    (interpolation
+                      (identifier))))))
+            (match_arm
+              (variant_pattern
+                (identifier)
+                (pattern_binding
+                  (identifier)))
+              (call_expression
+                (field_expression
+                  (identifier)
+                  (identifier))
+                (argument_list
+                  (string_literal
+                    (interpolation
+                      (field_expression
+                        (identifier)
+                        (identifier)))))))))))))
+
+================================================================================
+Literal, alternation, range and wildcard arms
+================================================================================
+
+fn main() {
+    let kind: string = match best {
+        0       => "zero",
+        1 | 2   => "couple",
+        3..=9   => "few",
+        _       => "many",
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (match_expression
+          (identifier)
+          (match_block
+            (match_arm
+              (literal_pattern
+                (integer_literal))
+              (string_literal))
+            (match_arm
+              (or_pattern
+                (literal_pattern
+                  (integer_literal))
+                (literal_pattern
+                  (integer_literal)))
+              (string_literal))
+            (match_arm
+              (range_pattern
+                (integer_literal)
+                (integer_literal))
+              (string_literal))
+            (match_arm
+              (wildcard_pattern)
+              (string_literal))))))))
+
+================================================================================
+Negative range pattern
+================================================================================
+
+fn small(value: i8) -> string {
+    match value {
+        -10..=0 => { return "small" }
+        _ => { return "big" }
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (block
+      (expression_statement
+        (match_expression
+          (identifier)
+          (match_block
+            (match_arm
+              (range_pattern
+                (negative_literal
+                  (integer_literal))
+                (integer_literal))
+              (block
+                (return_statement
+                  (string_literal))))
+            (match_arm
+              (wildcard_pattern)
+              (block
+                (return_statement
+                  (string_literal))))))))))
+
+================================================================================
+Typed payload bindings
+================================================================================
+
+fn main() {
+    match shape {
+        circle(r: float) => {}
+        rect(w: float, h: float) => {}
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (match_expression
+          (identifier)
+          (match_block
+            (match_arm
+              (variant_pattern
+                (identifier)
+                (pattern_binding
+                  (identifier)
+                  (primitive_type)))
+              (block))
+            (match_arm
+              (variant_pattern
+                (identifier)
+                (pattern_binding
+                  (identifier)
+                  (primitive_type))
+                (pattern_binding
+                  (identifier)
+                  (primitive_type)))
+              (block))))))))

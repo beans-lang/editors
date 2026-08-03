@@ -1,0 +1,104 @@
+================================================================================
+Line comment
+================================================================================
+
+// just a note
+fn main() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (line_comment)
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block)))
+
+================================================================================
+Doc comment binds to the declaration below it
+================================================================================
+
+/// Adds two numbers.
+/// Returns their sum.
+fn add(a: int, b: int) -> int {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (doc_comment)
+  (doc_comment)
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (primitive_type))
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (block)))
+
+================================================================================
+Four slashes are a divider, not documentation
+================================================================================
+
+//// ----------------------------
+fn main() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (line_comment)
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block)))
+
+================================================================================
+Block comment
+================================================================================
+
+/* one line */
+fn main() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (block_comment)
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block)))
+
+================================================================================
+Block comments nest
+================================================================================
+
+/* outer /* inner /* deepest */ still inner */ still outer */
+fn main() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (block_comment)
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block)))
+
+================================================================================
+A nested block comment does not close early on an inner star-slash
+================================================================================
+
+/* /* */ fn decoy() {} */
+fn real() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (block_comment)
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block)))

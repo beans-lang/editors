@@ -1,0 +1,396 @@
+================================================================================
+Number literals
+================================================================================
+
+fn main() {
+    let a: int = 1_000_000
+    let b: int = 0xFF
+    let c: int = 0b1010
+    let d: float = 3.14159
+    let e: float = 2.5e-3
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (float_literal))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (float_literal)))))
+
+================================================================================
+A dotted range is not a float
+================================================================================
+
+fn main() {
+    for i: int in 0..12 {}
+    for i: int in 0..=12 {}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (for_statement
+        (identifier)
+        (primitive_type)
+        (range_expression
+          (integer_literal)
+          (integer_literal))
+        (block))
+      (for_statement
+        (identifier)
+        (primitive_type)
+        (range_expression
+          (integer_literal)
+          (integer_literal))
+        (block)))))
+
+================================================================================
+Operator precedence follows the compiler's BINARY_LEVEL chain
+================================================================================
+
+fn main() {
+    let x: bool = a || b && c == d < e | f ^ g & h << i + j * k
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (binary_expression
+          (identifier)
+          (binary_expression
+            (identifier)
+            (binary_expression
+              (identifier)
+              (binary_expression
+                (identifier)
+                (binary_expression
+                  (identifier)
+                  (binary_expression
+                    (identifier)
+                    (binary_expression
+                      (identifier)
+                      (binary_expression
+                        (identifier)
+                        (binary_expression
+                          (identifier)
+                          (binary_expression
+                            (identifier)
+                            (identifier)))))))))))))))
+
+================================================================================
+Postfix chain: field, call, index, try
+================================================================================
+
+fn main() {
+    let n: int = s.to_int()?
+    let v: int = items[i].values[0].read()
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (try_expression
+          (call_expression
+            (field_expression
+              (identifier)
+              (identifier))
+            (argument_list))))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (call_expression
+          (field_expression
+            (index_expression
+              (field_expression
+                (index_expression
+                  (identifier)
+                  (identifier))
+                (identifier))
+              (integer_literal))
+            (identifier))
+          (argument_list))))))
+
+================================================================================
+Casts, including the checked downcast
+================================================================================
+
+fn main() {
+    let d: decimal = price * (qty as decimal)
+    match first as? LoudCircle {
+        some(c) => {}
+        none => {}
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (binary_expression
+          (identifier)
+          (parenthesized_expression
+            (cast_expression
+              (identifier)
+              (primitive_type)))))
+      (expression_statement
+        (match_expression
+          (cast_expression
+            (identifier)
+            (type_identifier))
+          (match_block
+            (match_arm
+              (variant_pattern
+                (identifier)
+                (pattern_binding
+                  (identifier)))
+              (block))
+            (match_arm
+              (identifier)
+              (block))))))))
+
+================================================================================
+new, struct literals, list and map literals
+================================================================================
+
+fn main() {
+    let p: Point = new Point(1, 2)
+    let d: Diagnostic = Diagnostic { severity: Severity.error, line: 1 }
+    var xs: List<int> = [1, 2, 3]
+    var m: Map<string, int> = {"a": 1, "b": 2}
+    var ordered: OrderedMap<string, int> = {}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (type_identifier)
+        (new_expression
+          (type_identifier)
+          (argument_list
+            (integer_literal)
+            (integer_literal))))
+      (variable_declaration
+        (identifier)
+        (type_identifier)
+        (struct_literal
+          (type_identifier)
+          (field_initializer_list
+            (field_initializer
+              (identifier)
+              (field_expression
+                (type_identifier)
+                (identifier)))
+            (field_initializer
+              (identifier)
+              (integer_literal)))))
+      (variable_declaration
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (primitive_type)))
+        (list_literal
+          (integer_literal)
+          (integer_literal)
+          (integer_literal)))
+      (variable_declaration
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (primitive_type)
+            (primitive_type)))
+        (map_literal
+          (string_literal)
+          (integer_literal)
+          (string_literal)
+          (integer_literal)))
+      (variable_declaration
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (primitive_type)
+            (primitive_type)))
+        (map_literal)))))
+
+================================================================================
+Ownership operators
+================================================================================
+
+fn main() {
+    self.add(inout out, "kind")
+    return move out
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (field_expression
+            (self_expression)
+            (identifier))
+          (argument_list
+            (unary_expression
+              (identifier))
+            (string_literal))))
+      (return_statement
+        (unary_expression
+          (identifier))))))
+
+================================================================================
+Anonymous function passed as an argument
+================================================================================
+
+fn main() {
+    let first: Thread<int> = thread.spawn(fn() -> int {
+        return 7
+    })
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (primitive_type)))
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (lambda_expression
+              (parameter_list)
+              (primitive_type)
+              (block
+                (return_statement
+                  (integer_literal))))))))))
+
+================================================================================
+Layout queries take a type
+================================================================================
+
+fn main() {
+    let s: int = size_of([f32; 4])
+    let a: int = align_of(RawPtr<Packet>)
+    let o: int = offset_of(Frame, trailer)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (layout_expression
+          (array_type
+            (primitive_type)
+            (integer_literal))))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (layout_expression
+          (generic_type
+            (type_identifier)
+            (type_arguments
+              (type_identifier)))))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (layout_expression
+          (type_identifier)
+          (identifier))))))
+
+================================================================================
+if as a value
+================================================================================
+
+fn main() {
+    let n: int = if flag { 1 } else { 2 }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (if_expression
+          (identifier)
+          (block
+            (expression_statement
+              (integer_literal)))
+          (block
+            (expression_statement
+              (integer_literal))))))))

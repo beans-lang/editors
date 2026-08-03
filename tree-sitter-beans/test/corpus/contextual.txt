@@ -1,0 +1,181 @@
+================================================================================
+Contextual modifiers are ordinary names elsewhere
+================================================================================
+
+class ValueLayout {
+    size: int
+    align: int
+}
+
+fn main() {
+    var align: string = ""
+    var packed: Bytes = new Bytes(0)
+    var feature: string = ""
+    align = ", align 16"
+    packed.append_i64(1)
+    feature = "aes"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type))
+      (field_declaration
+        (identifier)
+        (primitive_type))))
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (string_literal))
+      (variable_declaration
+        (identifier)
+        (type_identifier)
+        (new_expression
+          (type_identifier)
+          (argument_list
+            (integer_literal))))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (string_literal))
+      (assignment_statement
+        (identifier)
+        (string_literal))
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (integer_literal))))
+      (assignment_statement
+        (identifier)
+        (string_literal)))))
+
+================================================================================
+A parameter may be called packed
+================================================================================
+
+fn ffi_pack_argument(
+    packed: Bytes, value: string) {
+    packed.append_str(value)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_identifier))
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (block
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (identifier)))))))
+
+================================================================================
+some, none, ok and err are ordinary names
+================================================================================
+
+fn main() {
+    let some: int = 1
+    let none: int = 2
+    let ok: int = 3
+    let err: int = 4
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal)))))
+
+================================================================================
+super is contextual
+================================================================================
+
+class Child extends Base {
+    fn init(x: int) {
+        super.init(x)
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (type_identifier)
+    (declaration_body
+      (function_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (primitive_type)))
+        (block
+          (expression_statement
+            (call_expression
+              (field_expression
+                (super_expression)
+                (identifier))
+              (argument_list
+                (identifier)))))))))
+
+================================================================================
+int is a prefix of interface
+================================================================================
+
+interface Metric {
+    fn value(input: int) -> int
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (interface_declaration
+    (type_identifier)
+    (declaration_body
+      (function_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (primitive_type)))
+        (primitive_type)))))

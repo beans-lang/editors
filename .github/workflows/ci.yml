@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The beans compiler is the language authority and the LSP server under
+      # test. Without it the drift check, the corpus parse and the LSP smoke
+      # test skip themselves rather than fail.
+      - name: Check out beans
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: beans-lang/beans
+          path: beans
+
+      - name: Build beansc
+        id: beansc
+        continue-on-error: true
+        run: make -C beans
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Rust
+        run: rustup target add wasm32-wasip2
+
+      - run: npm ci
+
+      - name: Generated assets are up to date
+        run: npm run generate:check
+
+      - name: Build and lint the VS Code extension
+        run: |
+          npm --workspace beans-vscode run build
+          npm --workspace beans-vscode run lint
+
+      - name: Regenerate the tree-sitter parser
+        run: npm --workspace tree-sitter-beans run build
+
+      - name: The committed parser matches grammar.js
+        run: git diff --exit-code -- tree-sitter-beans/src
+
+      - name: Rust format, lint and Wasm build
+        run: npm run check:rust
+
+      - name: Test
+        run: npm test -- --beans "${{ github.workspace }}/beans"
+        env:
+          BEANS_ROOT: ${{ github.workspace }}/beans

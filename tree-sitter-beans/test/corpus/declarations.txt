@@ -1,0 +1,398 @@
+================================================================================
+Imports
+================================================================================
+
+import std.io
+import shop.money.fx
+import github.com/acme/http
+import gitlab.com/tools/csv as csvlib
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_declaration
+    (import_path))
+  (import_declaration
+    (import_path))
+  (import_declaration
+    (import_path))
+  (import_declaration
+    (import_path)
+    (identifier)))
+
+================================================================================
+Class with fields, an init and a method
+================================================================================
+
+class Point {
+    x: int
+    y: int = 0
+
+    fn init(x: int, y: int) {}
+
+    fn norm2() -> int {
+        return self.x * self.x + self.y * self.y
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type))
+      (field_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (function_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (primitive_type))
+          (parameter
+            (identifier)
+            (primitive_type)))
+        (block))
+      (function_declaration
+        (identifier)
+        (parameter_list)
+        (primitive_type)
+        (block
+          (return_statement
+            (binary_expression
+              (binary_expression
+                (field_expression
+                  (self_expression)
+                  (identifier))
+                (field_expression
+                  (self_expression)
+                  (identifier)))
+              (binary_expression
+                (field_expression
+                  (self_expression)
+                  (identifier))
+                (field_expression
+                  (self_expression)
+                  (identifier))))))))))
+
+================================================================================
+Modifier order: pub unique class
+================================================================================
+
+pub unique class Dylib {
+    handle: int
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (visibility_modifier)
+    (unique_modifier)
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type)))))
+
+================================================================================
+Inheritance and a comma-separated implements list
+================================================================================
+
+class Child extends Base implements Tagged, Counted {
+    label: string = "child"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (type_identifier)
+    (implements_clause
+      (type_identifier)
+      (type_identifier))
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type)
+        (string_literal)))))
+
+================================================================================
+Interface with body-less method signatures
+================================================================================
+
+pub interface Device {
+    fn label() -> string
+    fn reset()
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (interface_declaration
+    (visibility_modifier)
+    (type_identifier)
+    (declaration_body
+      (function_declaration
+        (identifier)
+        (parameter_list)
+        (primitive_type))
+      (function_declaration
+        (identifier)
+        (parameter_list)))))
+
+================================================================================
+Enum with payloads and methods
+================================================================================
+
+enum Shape {
+    circle(r: float),
+    rect(w: float, h: float),
+    dot,
+
+    fn area() -> float {}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (enum_declaration
+    (type_identifier)
+    (enum_body
+      (enum_variant
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (primitive_type))))
+      (enum_variant
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (primitive_type))
+          (parameter
+            (identifier)
+            (primitive_type))))
+      (enum_variant
+        (identifier))
+      (function_declaration
+        (identifier)
+        (parameter_list)
+        (primitive_type)
+        (block)))))
+
+================================================================================
+extern "C" packed struct
+================================================================================
+
+extern "C" packed struct Header {
+    kind: u8
+    length: u32
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_declaration
+    (extern_modifier
+      (string_literal))
+    (packed_modifier)
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type))
+      (field_declaration
+        (identifier)
+        (primitive_type)))))
+
+================================================================================
+align on a record and on one field
+================================================================================
+
+extern "C" align(64) struct Counter {
+    align(16) payload: u64
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_declaration
+    (extern_modifier
+      (string_literal))
+    (align_modifier
+      (align_keyword)
+      (integer_literal))
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (align_modifier
+          (align_keyword)
+          (integer_literal))
+        (identifier)
+        (primitive_type)))))
+
+================================================================================
+extern "C" opaque struct has no body
+================================================================================
+
+extern "C" opaque struct Handle
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_declaration
+    (extern_modifier
+      (string_literal))
+    (opaque_modifier)
+    (type_identifier)))
+
+================================================================================
+Exported C symbol name
+================================================================================
+
+pub extern "C" fn add(a: i32, b: i32) -> i32 as "beans_wasm_add" {
+    return a + b
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (visibility_modifier)
+    (extern_modifier
+      (string_literal))
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (primitive_type))
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (string_literal)
+    (block
+      (return_statement
+        (binary_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+feature-gated function
+================================================================================
+
+feature "aes" fn mix_fast(seed: int, rounds: int) -> int {
+    return seed
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (feature_modifier
+      (string_literal))
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (primitive_type))
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (block
+      (return_statement
+        (identifier)))))
+
+================================================================================
+Generic function with bounds
+================================================================================
+
+pub fn merge_with<K implements Eq & Hash & Clone, V implements Clone>(
+    values: Map<K, V>, other: Map<K, V>) -> Map<K, V> {
+    return values
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (visibility_modifier)
+    (identifier)
+    (type_parameters
+      (type_parameter
+        (type_identifier)
+        (type_bounds
+          (type_identifier)
+          (type_identifier)
+          (type_identifier)))
+      (type_parameter
+        (type_identifier)
+        (type_bounds
+          (type_identifier))))
+    (parameter_list
+      (parameter
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (type_identifier)
+            (type_identifier))))
+      (parameter
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (type_identifier)
+            (type_identifier)))))
+    (generic_type
+      (type_identifier)
+      (type_arguments
+        (type_identifier)
+        (type_identifier)))
+    (block
+      (return_statement
+        (identifier)))))
+
+================================================================================
+Static and override methods
+================================================================================
+
+class Port {
+    pub static fn checked(n: int) -> Result<Port> {}
+    override fn speak() -> string {}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (declaration_body
+      (function_declaration
+        (visibility_modifier)
+        (static_modifier)
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (primitive_type)))
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (type_identifier)))
+        (block))
+      (function_declaration
+        (override_modifier)
+        (identifier)
+        (parameter_list)
+        (primitive_type)
+        (block)))))

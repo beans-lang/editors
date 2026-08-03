@@ -1,0 +1,190 @@
+{
+  "name": "beans-vscode",
+  "displayName": "Beans",
+  "description": "Beans language support — syntax highlighting and language intelligence from the compiler's built-in language server.",
+  "version": "0.1.0",
+  "publisher": "beans-lang",
+  "license": "Apache-2.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beans-lang/editors.git",
+    "directory": "vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/beans-lang/beans/issues"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "beans",
+    "beansc",
+    "language server"
+  ],
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/*.b",
+    "workspaceContains:**/beans.pot"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The Beans language server runs the `beansc` executable found for the workspace."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "`beansc lsp` is a native executable and reads files from disk."
+    }
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "beans",
+        "aliases": [
+          "Beans",
+          "beans"
+        ],
+        "extensions": [
+          ".b"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/beans-b-light.svg",
+          "dark": "./icons/beans-b-dark.svg"
+        }
+      },
+      {
+        "id": "beans-manifest",
+        "aliases": [
+          "Beans Manifest"
+        ],
+        "filenames": [
+          "beans.pot"
+        ],
+        "configuration": "./manifest-language-configuration.json",
+        "icon": {
+          "light": "./icons/beans-pot-light.svg",
+          "dark": "./icons/beans-pot-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "beans",
+        "scopeName": "source.beans",
+        "path": "./syntaxes/beans.tmLanguage.json"
+      },
+      {
+        "language": "beans-manifest",
+        "scopeName": "source.beans-manifest",
+        "path": "./syntaxes/beans-manifest.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Beans",
+      "properties": {
+        "beans.compiler.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute or workspace-relative path to the `beansc` executable. Supports `~` and `${workspaceFolder}`. When empty, the extension checks the `BEANSC` environment variable, then the workspace root and `PATH`, then a local development build. A path containing spaces needs no quoting — the compiler is spawned directly, never through a shell.",
+          "scope": "machine-overridable"
+        },
+        "beans.compiler.searchDevelopmentPaths": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Also look for a compiler built from source at `build/beansc`, `beans/build/beansc` and `../beans/build/beansc`. Turn this off to require an installed `beansc`.",
+          "scope": "machine-overridable"
+        },
+        "beans.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace the JSON-RPC traffic between VS Code and `beansc lsp` in the Beans Language Server output channel.",
+          "scope": "window"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "beans.restartLanguageServer",
+        "title": "Restart Language Server",
+        "category": "Beans"
+      },
+      {
+        "command": "beans.showOutputChannel",
+        "title": "Show Language Server Output",
+        "category": "Beans"
+      }
+    ],
+    "configurationDefaults": {
+      "[beans]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true
+      }
+    },
+    "semanticTokenScopes": [
+      {
+        "language": "beans",
+        "scopes": {
+          "type": [
+            "entity.name.type.beans"
+          ],
+          "function": [
+            "entity.name.function.beans"
+          ],
+          "method": [
+            "entity.name.function.member.beans"
+          ],
+          "parameter": [
+            "variable.parameter.beans"
+          ],
+          "variable": [
+            "variable.other.beans"
+          ],
+          "property": [
+            "variable.other.property.beans"
+          ],
+          "enum": [
+            "entity.name.type.enum.beans"
+          ],
+          "enumMember": [
+            "variable.other.enummember.beans"
+          ],
+          "keyword": [
+            "keyword.beans"
+          ]
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc --project ./",
+    "watch": "tsc --watch --project ./",
+    "lint": "eslint src",
+    "test": "node --test ../test/vscode-resolve.test.mjs",
+    "package": "vsce package --no-dependencies --out beans-vscode.vsix",
+    "vscode:prepublish": "npm run build"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.91.0",
+    "@vscode/vsce": "^3.9.2",
+    "eslint": "^10.8.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.65.0"
+  }
+}

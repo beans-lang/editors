@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Beans source file">
+  <path fill="#C77743" stroke="#F0A873" stroke-width="1" stroke-linejoin="round"
+        d="M17 2C23 2 27 8 27 16C27 24 23 30 16 30C9 30 5 24 5 16C5 8 9 3 15 2Z"/>
+  <path fill="#9D5433" d="M15 2C9 3 5 8 5 16C5 23 8 28 14 30C11 22 13 18 15 15C18 11 17 7 15 2Z"/>
+  <path fill="none" stroke="#2A1714" stroke-width="2.8" stroke-linecap="round"
+        d="M17.5 3.5C13 9 14 13 18 16.5C21 20 19 25 15.5 28.5"/>
+</svg>

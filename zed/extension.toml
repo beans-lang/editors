@@ -1,0 +1,34 @@
+id = "beans"
+name = "Beans"
+description = "Beans language support — Tree-sitter highlighting plus language intelligence from the compiler's built-in language server (beansc lsp)."
+version = "0.1.0"
+schema_version = 1
+authors = ["The Beans authors"]
+repository = "https://github.com/beans-lang/editors"
+
+# The Tree-sitter grammar lives in this same repository under
+# `tree-sitter-beans/`, which Zed supports through the optional `path` field:
+# it clones `repository` at `rev`, joins `path`, then compiles `src/parser.c`
+# and `src/scanner.c`.
+#
+# `rev` MUST be a commit that exists on the remote and contains the generated
+# `tree-sitter-beans/src/parser.c`. It is deliberately left unset below rather
+# than filled with a plausible-looking SHA — a wrong revision would fail at
+# install time with a confusing checkout error instead of an obvious one.
+#
+# To make this installable:
+#   1. commit tree-sitter-beans/ (including src/parser.c) and push it
+#   2. run `node scripts/pin-grammar.mjs --rev <sha>`
+#
+# To work on it locally without pushing anything:
+#   node scripts/pin-grammar.mjs --local
+#
+# See editors/zed/README.md.
+[grammars.beans]
+repository = "https://github.com/beans-lang/editors"
+rev = "UNPINNED"
+path = "tree-sitter-beans"
+
+[language_servers.beansc]
+name = "Beans Language Server"
+languages = ["Beans"]

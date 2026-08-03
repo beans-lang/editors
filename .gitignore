@@ -1,1 +1,23 @@
 .DS_Store
+
+# npm
+node_modules/
+
+# VS Code extension build output
+vscode/out/
+vscode/*.vsix
+
+# Rust / Zed extension build output
+zed/target/
+zed/extension.wasm
+zed/grammars/
+
+# tree-sitter build output.
+#
+# `src/parser.c`, `src/scanner.c` and `src/tree_sitter/` are NOT ignored: Zed
+# clones this repository and compiles the parser from source, so the generated
+# parser has to be committed.
+tree-sitter-beans/build/
+tree-sitter-beans/*.wasm
+tree-sitter-beans/target/
+tree-sitter-beans/bindings/

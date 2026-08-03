@@ -1,0 +1,22 @@
+[package]
+name = "zed_beans"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Apache-2.0"
+description = "Beans language support for Zed"
+repository = "https://github.com/beans-lang/editors"
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+zed_extension_api = "0.7.0"
+
+[profile.release]
+# Zed loads the extension as a Wasm component; smaller is better and nothing
+# here is hot.
+opt-level = "s"
+lto = true
+strip = true

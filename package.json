@@ -1,0 +1,40 @@
+{
+  "name": "beans-editors",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Editor integrations for the Beans programming language",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beans-lang/editors.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "vscode",
+    "tree-sitter-beans"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "generate:check": "node scripts/generate.mjs --check",
+    "sync": "node scripts/sync-beans.mjs",
+    "grammar": "npm run generate && npm --workspace tree-sitter-beans run build",
+    "build": "npm run generate:check && npm --workspace beans-vscode run build",
+    "lint": "npm --workspace beans-vscode run lint",
+    "check:rust": "node scripts/check-rust.mjs",
+    "pin-grammar": "node scripts/pin-grammar.mjs",
+    "test": "node scripts/run-tests.mjs",
+    "test:manifests": "node --test test/manifests.test.mjs",
+    "test:grammar": "node --test test/tmgrammar.test.mjs",
+    "test:resolve": "node --test test/vscode-resolve.test.mjs",
+    "test:lsp": "node --test test/lsp-smoke.test.mjs",
+    "test:treesitter": "npm --workspace tree-sitter-beans run test",
+    "test:corpus": "node scripts/parse-corpus.mjs"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0"
+  }
+}
