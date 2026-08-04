@@ -7,6 +7,30 @@ matching the tag.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-08-04
+
+### Fixed
+
+- **Zed: "Failed to install dev extension: failed to compile Rust extension".**
+  Zed builds the extension itself by running `cargo build --target
+  wasm32-wasip2` with whatever `cargo` is first on `PATH`. On a machine with
+  more than one Rust installation, that is often one carrying host support
+  only, and the install failed. The extension now pins its toolchain and
+  target, so a rustup-managed `cargo` installs what it needs on demand.
+
+  If it still fails, `cargo` on your `PATH` is not managed by rustup and cannot
+  add targets. The Zed
+  [README](https://github.com/beans-lang/editors/blob/main/zed/README.md#troubleshooting)
+  has the one-line fix.
+
+### Changed
+
+- The Zed README has a troubleshooting section covering that failure, and
+  `npm run check:rust` now reports the same problem directly instead of
+  quietly building with a different toolchain than Zed would use.
+
+The VS Code extension is unchanged in this release.
+
 ## [0.1.1] - 2026-08-03
 
 First release of Beans language support for VS Code and Zed.
@@ -44,4 +68,5 @@ Beans program means.
 - `beans.pot` is matched by exact filename. The `.pot` suffix belongs to
   gettext and is never claimed.
 
+[0.1.2]: https://github.com/beans-lang/editors/releases/tag/v0.1.2
 [0.1.1]: https://github.com/beans-lang/editors/releases/tag/v0.1.1

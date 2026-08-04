@@ -2,7 +2,7 @@
   "name": "beans-vscode",
   "displayName": "Beans",
   "description": "Beans language support \u2014 syntax highlighting and language intelligence from the compiler's built-in language server.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "beans-lang",
   "license": "Apache-2.0",
   "private": true,
