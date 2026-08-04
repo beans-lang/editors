@@ -85,9 +85,14 @@ through standard LSP capability negotiation.
 
 Zed requests semantic tokens only when `"semantic_tokens"` is set to
 `"combined"` or `"full"`; the extension ships the styling so it looks right the
-moment you enable it. Zed icon themes replace the whole icon set rather than
-extending it, so no Beans icon theme is shipped — the assets are in
-[`icons/`](icons/) for anyone building one.
+moment you enable it.
+
+Zed has no way for a language extension to contribute a file icon — icons come
+only from an icon theme, one of which is active at a time, and a theme replaces
+the whole set rather than extending it. A Beans-only theme would drop every
+other language to the generic file icon, so none is shipped. The assets are in
+[`icons/`](icons/) for adding `.b` to an existing icon theme, which is how
+every other language gets its icon in Zed.
 
 ### Not yet available
 

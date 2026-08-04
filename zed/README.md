@@ -211,7 +211,14 @@ The `.scm` files and `semantic_token_rules.json` are generated from
 language, and the manifest format would need one of its own. The VS Code
 extension supports it because VS Code does not have that requirement.
 
-**No icon theme.** Zed icon themes replace the entire icon set rather than
-extending it, so a Beans-only theme would leave every other file without an
-icon. The assets are in [`../icons/`](../icons/) for anyone building a
-complete theme.
+**No file icon.** Zed has no way for a language extension to contribute one.
+Icons come only from an icon theme, exactly one of which is active at a time
+(`icon_theme` in settings), and a theme replaces the whole set rather than
+extending it.
+
+Concretely: the suffix-to-icon lookup reads only the active theme, so a
+Beans-only theme would drop every other language back to the generic file icon.
+That is a poor trade for a bean, so this extension ships no theme. The assets
+are in [`../icons/`](../icons/) for anyone building a complete one, or for
+adding `.b` to an existing icon theme — which is how every other language gets
+its icon in Zed.
