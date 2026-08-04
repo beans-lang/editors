@@ -124,6 +124,41 @@ commit everyone can fetch.
 > manifest test accepts only a full 40-character SHA or the literal
 > `UNPINNED`.
 
+## Troubleshooting
+
+### "Failed to install dev extension: failed to compile Rust extension"
+
+Zed builds the extension itself by running `cargo build --target wasm32-wasip2`
+with whatever `cargo` it finds on `PATH`. It has no fallback, so if that
+particular cargo cannot build for Wasm, the install fails — even when another
+toolchain on the machine can.
+
+The usual cause is **two Rust installations**, with the one lacking the target
+first on `PATH`. A distro or Homebrew Rust carries host std only; only a
+rustup-managed toolchain can add targets. Zed's own
+`rustup target add wasm32-wasip2` step then appears to succeed, because it adds
+the target to the *rustup* toolchain that Zed is not going to use.
+
+Check what Zed will find:
+
+```bash
+command -v cargo
+rustc --print target-libdir --target wasm32-wasip2
+```
+
+If that directory does not exist, that cargo cannot build the extension. On
+macOS with both Homebrew `rust` and `rustup` installed:
+
+```bash
+brew unlink rust
+brew link --force --overwrite rustup
+```
+
+Then restart Zed and install the dev extension again.
+
+`npm run check:rust` detects this and fails with the same explanation, so it
+does not have to be diagnosed from Zed's error message.
+
 ## Development
 
 From `editors/`:

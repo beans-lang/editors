@@ -115,6 +115,30 @@ if (spawnSync(hostCargo, ['clippy', '--version'], { stdio: 'ignore' }).status ==
   console.log('cargo clippy... skipped (not installed)');
 }
 
+// Zed builds this extension with a bare `cargo build --target wasm32-wasip2`
+// resolved from PATH. It has no fallback, so if the cargo on PATH cannot do
+// that, "Install Dev Extension" fails with "failed to compile Rust extension"
+// however many other working toolchains are on the machine. Falling back
+// quietly here would hide exactly the condition that breaks Zed.
+const pathCargoCanBuildWasm = cargos.includes('cargo') && hasTarget('cargo', WASM_TARGET);
+
+if (cargos.includes('cargo') && !pathCargoCanBuildWasm && wasmCargo !== undefined) {
+  ok = false;
+  console.log('');
+  console.log(`FAILED  the cargo on PATH cannot build for ${WASM_TARGET}.`);
+  console.log('');
+  console.log('  Zed runs `cargo` from PATH with no fallback, so it will fail to install');
+  console.log('  this extension with "failed to compile Rust extension".');
+  console.log('');
+  console.log(`  on PATH:      ${execFileSync('cargo', ['--version'], { encoding: 'utf8' }).trim()}`);
+  console.log(`  has ${WASM_TARGET}: ${wasmCargo}`);
+  console.log('');
+  console.log('  Usually this is two Rust installations, with the wrong one first.');
+  console.log('  On macOS with Homebrew:');
+  console.log('    brew unlink rust && brew link --force --overwrite rustup');
+  console.log('');
+}
+
 if (wasmCargo !== undefined) {
   const via = wasmCargo === 'cargo' ? '' : ` (via ${wasmCargo})`;
   ok =

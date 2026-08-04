@@ -1,0 +1,11 @@
+# Zed compiles this extension itself, with a bare `cargo build --target
+# wasm32-wasip2` resolved from PATH. Pinning the toolchain here means a
+# rustup-managed cargo installs the target on demand instead of failing with
+# "can't find crate for `core`".
+#
+# This has no effect on a cargo that rustup does not manage — see the
+# troubleshooting section in README.md if the build fails anyway.
+[toolchain]
+channel = "stable"
+targets = ["wasm32-wasip2"]
+components = ["rustfmt", "clippy"]
