@@ -54,27 +54,52 @@ function parseToml(text) {
 describe('versioning', () => {
   const version = readJson('package.json').version;
 
-  test('every manifest carries the same version', () => {
+  test('everything released together carries the same version', () => {
     // The release workflow refuses a tag that disagrees with
     // vscode/package.json, so a mismatch here would fail a release rather
     // than ship a half-bumped set of manifests.
+    //
+    // The Tree-sitter grammar is deliberately *not* in this list — see below.
     assert.equal(readJson('vscode', 'package.json').version, version, 'vscode/package.json');
-    assert.equal(
-      readJson('tree-sitter-beans', 'package.json').version,
-      version,
-      'tree-sitter-beans/package.json',
-    );
-    assert.equal(
-      readJson('tree-sitter-beans', 'tree-sitter.json').metadata.version,
-      version,
-      'tree-sitter-beans/tree-sitter.json',
-    );
 
     const zed = parseToml(readText('zed', 'extension.toml'));
     assert.equal(zed.version, version, 'zed/extension.toml');
 
     const cargo = parseToml(readText('zed', 'Cargo.toml'));
     assert.equal(cargo.package.version, version, 'zed/Cargo.toml');
+  });
+
+  test('the grammar versions itself, and its two manifests agree', () => {
+    // The grammar is a separate artifact on its own lifecycle: Zed pins it by
+    // commit SHA and never reads its version. Bumping it with every extension
+    // release would rewrite 57k lines of generated parser to change one
+    // integer.
+    const grammarVersion = readJson('tree-sitter-beans', 'package.json').version;
+    assert.equal(
+      readJson('tree-sitter-beans', 'tree-sitter.json').metadata.version,
+      grammarVersion,
+      'tree-sitter.json must agree with the grammar package.json',
+    );
+  });
+
+  test('the committed parser was generated from the current grammar version', () => {
+    // `tree-sitter generate` stamps tree-sitter.json's version into parser.c.
+    // Changing the version without regenerating leaves the committed parser
+    // stale, which CI catches with `git diff --exit-code` — but only after a
+    // push. Catch it here instead.
+    const grammarVersion = readJson('tree-sitter-beans', 'tree-sitter.json').metadata.version;
+    const [major, minor, patch] = grammarVersion.split('.');
+    const parser = readText('tree-sitter-beans', 'src', 'parser.c');
+    const stamped = /\.metadata = \{\s*\.major_version = (\d+),\s*\.minor_version = (\d+),\s*\.patch_version = (\d+),/.exec(
+      parser,
+    );
+    assert.ok(stamped, 'could not find the version metadata in parser.c');
+    assert.deepEqual(
+      stamped.slice(1, 4),
+      [major, minor, patch],
+      `parser.c was generated at ${stamped.slice(1, 4).join('.')} but tree-sitter.json ` +
+        `says ${grammarVersion} — run \`npm run grammar\` and commit the result`,
+    );
   });
 
   test('the changelog has an entry for this version', () => {

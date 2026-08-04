@@ -41,6 +41,17 @@ cd editors/tree-sitter-beans
 clones this repository and compiles the parser from source, so the generated
 parser has to be in git.
 
+## Versioning
+
+The grammar versions independently of the editor extensions. Zed pins it by
+commit SHA and never reads its version, so bumping it with every extension
+release would rewrite 57,000 lines of generated parser to change one integer.
+
+Bump `tree-sitter.json` and `package.json` together when the *grammar* changes,
+and regenerate — `tree-sitter generate` stamps that version into `parser.c`, so
+changing one without the other leaves the committed parser stale. CI checks
+this with `git diff --exit-code`, and `npm test` checks it before you push.
+
 ## Keywords and token lists
 
 These are not defined here. `grammar.js` reads `grammar-data.json`, generated

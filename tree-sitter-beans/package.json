@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-beans",
-  "version": "0.1.2",
+  "version": "0.1.0",
   "description": "Beans grammar for tree-sitter",
   "license": "Apache-2.0",
   "repository": {
