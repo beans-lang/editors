@@ -96,7 +96,10 @@ for (const step of steps) {
   process.stdout.write(output);
 
   const ok = result.status === 0;
-  const didSkip = ok && /^skip:/m.test(output);
+  // `node --test` reports through TAP, which turns a `console.log` from the
+  // test file into a `# ` comment. Accept either form, or the marker is
+  // invisible exactly when it matters.
+  const didSkip = ok && /^\s*(?:# )?skip:/m.test(output);
 
   if (!ok) failed += 1;
   else if (didSkip) skipped += 1;
