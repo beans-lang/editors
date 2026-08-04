@@ -80,24 +80,46 @@ const steps = [
 
 const results = [];
 let failed = 0;
+let skipped = 0;
 
 for (const step of steps) {
   process.stdout.write(`\n=== ${step.name} ===\n`);
+  // Output is captured rather than inherited so a step that opted out can be
+  // reported as skipped. Reporting a skip as a pass is worse than useless: it
+  // makes a green board claim coverage it does not have, which is exactly how
+  // CI came to look healthy while never running the compiler-backed checks.
   const result = spawnSync(step.command, step.args, {
     cwd: step.cwd ?? editorsRoot,
-    stdio: 'inherit',
     encoding: 'utf8',
   });
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+  process.stdout.write(output);
+
   const ok = result.status === 0;
+  const didSkip = ok && /^skip:/m.test(output);
+
   if (!ok) failed += 1;
-  results.push({ name: step.name, ok });
+  else if (didSkip) skipped += 1;
+
+  results.push({ name: step.name, state: !ok ? 'FAIL' : didSkip ? 'skip' : 'pass' });
 }
 
 console.log('\n────────────────────────────────────────────────────────────');
-for (const { name, ok } of results) {
-  console.log(`${ok ? 'pass' : 'FAIL'}  ${name}`);
+for (const { name, state } of results) {
+  console.log(`${state.padEnd(4)}  ${name}`);
 }
 console.log('────────────────────────────────────────────────────────────');
-console.log(`${results.length - failed}/${results.length} steps passed`);
+
+const passed = results.length - failed - skipped;
+const summary = [`${passed}/${results.length} steps passed`];
+if (skipped > 0) summary.push(`${skipped} skipped`);
+if (failed > 0) summary.push(`${failed} failed`);
+console.log(summary.join(', '));
+
+if (skipped > 0) {
+  console.log('\nSkipped steps need a beans checkout with the compiler built.');
+  console.log('They are not run in CI: the bootstrap compiler is a private');
+  console.log('submodule and no beansc binary has been published yet.');
+}
 
 process.exit(failed === 0 ? 0 : 1);

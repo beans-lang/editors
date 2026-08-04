@@ -19,7 +19,27 @@ Optional but recommended:
   only checked
 
 Steps that need either of those skip themselves with a message rather than
-failing, so a fresh clone of just this repository still goes green.
+failing, so a fresh clone of just this repository still goes green. They are
+reported as `skip`, never as `pass` — a green summary that overstates coverage
+is worse than a red one.
+
+### What CI cannot run
+
+GitHub Actions checks out `beans-lang/beans` but cannot build `beansc` from it:
+`compiler/bootstrap` is a private submodule, and no `beansc` binary has been
+published yet. Two checks therefore skip in CI and only ever run locally:
+
+| Check | Needs |
+| --- | --- |
+| `real LSP smoke test against beansc lsp` | a built `beansc` |
+| `language data matches the compiler` | `compiler/bootstrap` sources |
+
+The corpus parse does run in CI — the `.b` files it needs are in the public
+checkout, and it parses about 320 of them on every push.
+
+So run the full suite locally before pushing anything that touches
+`shared/language.json`, the grammar, or the language client. CI will not catch
+drift against the compiler.
 
 ## Repository layout
 

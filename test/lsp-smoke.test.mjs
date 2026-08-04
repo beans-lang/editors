@@ -42,6 +42,13 @@ function findCompiler() {
 const resolution = findCompiler();
 const skip = resolution === null ? 'no beansc found — build it in the beans repository' : false;
 
+if (resolution === null) {
+  // A `skip:` line so the suite runner reports this as skipped rather than
+  // passed. node:test's own SKIP output does not distinguish the two in a way
+  // the runner can see, and a skip counted as a pass overstates coverage.
+  console.log('skip: no beansc found — the LSP smoke test needs a built compiler.');
+}
+
 // ---- a minimal LSP client over stdio ---------------------------------------
 
 class StdioClient {

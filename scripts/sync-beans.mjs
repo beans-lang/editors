@@ -33,9 +33,18 @@ const read = (relative) => {
   return readFileSync(path, 'utf8');
 };
 
-if (!existsSync(join(beansRoot, 'compiler', 'bootstrap', 'token.cpp'))) {
+if (!existsSync(join(beansRoot, 'compiler'))) {
   console.log(`skip: no beans checkout at ${beansRoot}`);
   console.log('Pass --beans <path> or set BEANS_ROOT to check for drift.');
+  process.exit(0);
+}
+
+// A public beans checkout has no `compiler/bootstrap` — it is a private
+// submodule. Say so plainly rather than claiming the checkout is missing.
+if (!existsSync(join(beansRoot, 'compiler', 'bootstrap', 'token.cpp'))) {
+  console.log(`skip: ${beansRoot} has no compiler/bootstrap sources.`);
+  console.log('The bootstrap compiler is a private submodule, and the keyword');
+  console.log('table, builtin registry and LSP capabilities are read from it.');
   process.exit(0);
 }
 
