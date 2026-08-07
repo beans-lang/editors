@@ -1,8 +1,8 @@
 {
   "name": "beans-vscode",
   "displayName": "Beans",
-  "description": "Beans language support \u2014 syntax highlighting and language intelligence from the compiler's built-in language server.",
-  "version": "0.1.3",
+  "description": "Beans language support — syntax highlighting and language intelligence from the compiler's built-in language server.",
+  "version": "0.2.0",
   "publisher": "beans-lang",
   "license": "Apache-2.0",
   "private": true,
@@ -28,7 +28,9 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "workspaceContains:**/*.b",
-    "workspaceContains:**/beans.pot"
+    "workspaceContains:**/beans.pot",
+    "onDebugResolve:beans",
+    "onDebug"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -90,7 +92,7 @@
         "beans.compiler.path": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Absolute or workspace-relative path to the `beansc` executable. Supports `~` and `${workspaceFolder}`. When empty, the extension checks the `BEANSC` environment variable, then the workspace root and `PATH`, then a local development build. A path containing spaces needs no quoting \u2014 the compiler is spawned directly, never through a shell.",
+          "markdownDescription": "Absolute or workspace-relative path to the `beansc` executable. Supports `~` and `${workspaceFolder}`. When empty, the extension checks the `BEANSC` environment variable, then the workspace root and `PATH`, then a local development build. A path containing spaces needs no quoting — the compiler is spawned directly, never through a shell.",
           "scope": "machine-overridable"
         },
         "beans.compiler.searchDevelopmentPaths": {
@@ -108,6 +110,12 @@
           ],
           "default": "off",
           "description": "Trace the JSON-RPC traffic between VS Code and `beansc lsp` in the Beans Language Server output channel.",
+          "scope": "window"
+        },
+        "beans.debug.trace": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Log the debug adapter's startup, and where `beansc` was found, in the Beans Language Server output channel.",
           "scope": "window"
         }
       }
@@ -164,6 +172,102 @@
             "keyword.beans"
           ]
         }
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "beans"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "beans",
+        "label": "Beans",
+        "languages": [
+          "beans"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Absolute path to the Beans file to run. `${file}` debugs the open editor.",
+                "default": "${file}"
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Working directory for the program.",
+                "default": "${workspaceFolder}"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Arguments passed to the program.",
+                "default": []
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Environment variables added for the program.",
+                "default": {}
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Stop before the first statement of `main`.",
+                "default": false
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "beans",
+            "request": "launch",
+            "name": "Debug Beans Program",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "args": [],
+            "env": {},
+            "stopOnEntry": false
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Beans: Debug the open file",
+            "description": "Run the file in the active editor under the Beans interpreter debugger.",
+            "body": {
+              "type": "beans",
+              "request": "launch",
+              "name": "${1:Debug Beans Program}",
+              "program": "^\"\\${file}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "args": [],
+              "env": {},
+              "stopOnEntry": false
+            }
+          },
+          {
+            "label": "Beans: Debug a specific program",
+            "description": "Run one Beans file, whichever editor is open.",
+            "body": {
+              "type": "beans",
+              "request": "launch",
+              "name": "${1:Debug main.b}",
+              "program": "^\"\\${workspaceFolder}/${2:main.b}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "args": [],
+              "env": {},
+              "stopOnEntry": true
+            }
+          }
+        ]
       }
     ]
   },

@@ -3,11 +3,16 @@
 Syntax highlighting and full language intelligence for the
 [Beans programming language](https://github.com/beans-lang/beans).
 
-The extension is a thin LSP client. It starts `beansc lsp` — the language
-server built into the Beans compiler — and renders whatever that server
-advertises. Diagnostics, completion, hover, signature help, definition,
-references, document symbols, semantic tokens and rename all come from the
-compiler.
+The extension is a thin client. It starts `beansc lsp` — the language server
+built into the Beans compiler — and renders whatever that server advertises.
+Diagnostics, completion, hover, signature help, definition, declaration,
+implementation, type definition, references, document highlights, document and
+workspace symbols, call and type hierarchy, semantic tokens and rename all come
+from the compiler.
+
+Debugging works the same way: the extension contributes a `beans` debug type
+that starts `beansc debug-adapter`, which speaks the Debug Adapter Protocol.
+Nothing about the language lives in this extension.
 
 ## Requirements
 
@@ -30,6 +35,7 @@ side by side. Otherwise set the path (see below).
 | `beans.compiler.path` | `""` | Path to `beansc`. Absolute, or relative to the workspace. Supports `~` and `${workspaceFolder}`. |
 | `beans.compiler.searchDevelopmentPaths` | `true` | Also look for a source build at `build/beansc`, `beans/build/beansc`, `../beans/build/beansc`. |
 | `beans.trace.server` | `"off"` | `"messages"` or `"verbose"` to log the JSON-RPC traffic. |
+| `beans.debug.trace` | `false` | Log the debug adapter's startup, and where `beansc` was found. |
 
 The compiler is resolved in this order:
 
@@ -50,6 +56,47 @@ never through a shell.
 
 The server also restarts by itself when the compiler settings or the workspace
 folders change.
+
+## Debugging
+
+Open a `.b` file and press <kbd>F5</kbd>. With no `launch.json`, the extension
+debugs the file in the active editor. To write one, pick **Beans** in the
+launch-configuration list, or use a snippet:
+
+```json
+{
+  "type": "beans",
+  "request": "launch",
+  "name": "Debug Beans Program",
+  "program": "${file}",
+  "cwd": "${workspaceFolder}",
+  "args": [],
+  "env": {},
+  "stopOnEntry": false
+}
+```
+
+| Attribute | Default | What it does |
+| --- | --- | --- |
+| `program` | `${file}` | The Beans file to run. Required. |
+| `cwd` | `${workspaceFolder}` | Working directory for the program. |
+| `args` | `[]` | Arguments passed to the program. |
+| `env` | `{}` | Extra environment variables. |
+| `stopOnEntry` | `false` | Stop before the first statement of `main`. |
+
+The debugger runs your program with the compiler's tree interpreter — no build
+step, no second toolchain. You get breakpoints on Beans lines, a call stack of
+Beans function names, `self`, parameters and locals with real values, paging
+through large lists, maps and objects, watch expressions over variable paths
+(`name`, `name.field`, `name[0]`), step over / into / out, continue, and a stop
+on a runtime panic with the stack still standing.
+
+Native (compiled) debugging is a different thing and is not available; see
+[the top-level README](../README.md#interpreter-debugging-vs-native-debugging)
+for exactly what `beansc build --debug` does and does not give you.
+
+The debugger uses the same compiler resolution as the language server, so both
+halves are always the same build.
 
 ## Development
 
@@ -81,6 +128,7 @@ npm test                # everything
 npm run test:resolve    # compiler path resolution
 npm run test:grammar    # TextMate scopes
 npm run test:lsp        # a real beansc lsp session
+npm run test:debug      # launch configurations and a real DAP session
 ```
 
 See [`CONTRIBUTING.md`](../CONTRIBUTING.md).
@@ -104,10 +152,11 @@ dependency is present in `vscode/node_modules`, then package without that flag.
 
 ## Scope
 
-The extension registers no language feature providers of its own. A missing
-feature is missing from `beansc lsp`, and that is where it should be added; a
-second feature engine in the editor would drift from the compiler. See the
-feature matrix in the [top-level README](../README.md).
+The extension registers no language feature providers of its own, and it
+implements no part of the debugger beyond finding and starting `beansc
+debug-adapter`. A missing feature is missing from the compiler, and that is
+where it should be added; a second engine in the editor would drift from it.
+See the feature matrix in the [top-level README](../README.md).
 
 Browser-only VS Code is not supported. `beansc lsp` is a native executable, so
 the document selector is `scheme: file` and `virtualWorkspaces` is declared
@@ -126,6 +175,8 @@ vscode/
     extension.ts                        activation, commands, config changes
     client.ts                           the language client lifecycle
     beansc.ts                           compiler resolution (no vscode imports)
+    debug.ts                            launch configurations (no vscode imports)
+    debugger.ts                         the debug provider and adapter factory
 ```
 
 `syntaxes/` is generated from `editors/shared/language.json` — edit that and run

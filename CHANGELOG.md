@@ -9,6 +9,113 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+
+- **A Beans debugger.** `beansc debug-adapter` speaks the Debug Adapter
+  Protocol on stdio, and the VS Code extension contributes a `beans` debug
+  type that starts it. Press F5 on a `.b` file, stop at a breakpoint, read
+  locals, step, and continue.
+
+  The debugger drives the compiler's tree interpreter, so it works with no
+  build step and no second toolchain: breakpoints are Beans file and line
+  positions, stack frames name Beans functions, and variables come from the
+  interpreter's own frames using the binding ids the checker allocated — so a
+  shadowed local stays two separate variables.
+
+  A breakpoint on a blank line or a comment moves to the nearest line that
+  carries a statement, and the adapter reports where it really landed. A
+  runtime panic stops with the stack still standing. The program's stdout and
+  stderr arrive as `output` events, so they land in the debug console instead
+  of the protocol stream. `attach` is refused with a sentence saying why: the
+  Beans debugger runs the program itself.
+
+  Native (compiled) debugging is a separate, future thing — see the README.
+
+- **Go to Declaration, Go to Implementation, Go to Type Definition and
+  document highlights.** All four are answered from the compiler's checked
+  hierarchy. Go to Declaration on an override reaches the interface or base
+  method it implements; Go to Implementation on an interface or interface
+  method lists every concrete type or body, across packages.
+
+- **Workspace symbols, call hierarchy and type hierarchy.** `workspace/symbol`
+  searches every loaded package with a subsequence match and keeps package
+  identity in the container, so two same-named types stay tellable apart. Call
+  hierarchy uses resolved call targets, and type hierarchy uses the checked
+  `extends`/`implements` graph.
+
+- **Incremental document sync.** The server advertises
+  `textDocumentSync.change = 2` and applies LSP ranges to the buffer it keeps,
+  so a keystroke sends a range rather than the whole file.
+
+- **`workspace/symbol` covers the whole workspace.** It searches every Beans
+  project under the folders the client opened, not only the ones with a file
+  open, so a search works before anything is opened.
+
+### Changed
+
+- **Every language feature now answers with an exact symbol.** The self-hosted
+  server was rewritten onto a semantic workspace: one checked view of the
+  project per revision, indexed by the compiler's own identities — canonical
+  package symbols for declarations, owner plus name for members, and the
+  expression checker's binding ids for locals and parameters.
+
+  What this fixes, concretely:
+
+  - Completion after `.` resolves the receiver's checked type, so `a.` offers
+    that type's members and nothing else — including built-in receivers such
+    as `string`, `List<T>` and `Map<K, V>`, whose members are read out of the
+    checker's own registry.
+  - General completion returns only what is in scope at the cursor: locals
+    declared later, locals of another function, and locals hidden in another
+    block are all excluded, and an inner binding shadows an outer one.
+  - Go to Definition, references and rename act on symbol identity, not on
+    spelling. Two same-named methods on two same-named types in two packages
+    are two different symbols; renaming one never touches the other, and
+    renaming a shadowed local never touches the binding it shadows.
+  - Rename refuses built-ins, keywords and anything without a declaration, and
+    validates the new name before producing any edit.
+  - Renaming a member is checked against the whole hierarchy, in both
+    directions. A base member cannot take a name any subtype already declares,
+    however deep — a method would start hiding it, and a field would silently
+    share one slot with it.
+  - A virtual method renames as one family. Starting from the interface
+    declaration or from any override produces the same edit, covering every
+    implementation, so the program still compiles afterwards.
+  - Names written inside a string's `{}` interpolation resolve like any other
+    expression.
+
+- **File URIs are percent-encoded.** A path with a space or a non-ASCII
+  character now round-trips, so navigation works in a folder called
+  `my project`.
+
+- **Positions are UTF-16 throughout.** A line with an emoji before a symbol
+  lands on the right character.
+
+- **A name owns exactly its own columns.** Spans are half-open, so the `(`
+  after `draw` is not `draw` and the space before it is not either.
+
+- **Rename refuses an edit that would rebind something else.** Renaming a local
+  to a name already in scope, a type or function to one its package declares,
+  or a method to one its type already has is refused with a sentence saying
+  what it would collide with. Every one of those edits still compiles, which is
+  exactly why they have to be caught here.
+
+### Known limits
+
+- `$/cancelRequest` is accepted and ignored. The server reads and answers
+  strictly in order, so a cancellation is always read after the request it
+  names has been answered; honouring one would need reading ahead of the
+  current request, which needs threads or a non-blocking stdin. LSP permits
+  answering a cancelled request normally, and that is what happens.
+
+- `shared/language.json` records the sixteen capabilities the shipped server
+  advertises, and a separate list for what the older bootstrap server still
+  answers. `test/lsp-smoke.test.mjs` checks every claim against a live server,
+  so the file cannot claim a menu item that does nothing.
+
+
 ### Added
 
 - **`async` and `await` are highlighted.** Both landed in the compiler with

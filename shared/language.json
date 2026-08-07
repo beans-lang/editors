@@ -10,16 +10,18 @@
     "Language intelligence (completion, hover, diagnostics, ...) is NOT here.",
     "That lives in `beansc lsp` and reaches editors over LSP."
   ],
-
   "language": {
     "id": "beans",
     "name": "Beans",
     "version": "0.1.0",
-    "fileExtensions": [".b"],
-    "fileNames": ["beans.pot"],
+    "fileExtensions": [
+      ".b"
+    ],
+    "fileNames": [
+      "beans.pot"
+    ],
     "$comment": "beans.pot is an exact filename. `.pot` is gettext's; never claim the suffix."
   },
-
   "comments": {
     "line": "//",
     "doc": "///",
@@ -29,24 +31,44 @@
     "blockNesting": true,
     "source": "beans/compiler/bootstrap/lexer.cpp — skip_block_comment(), scan_all()"
   },
-
   "strings": {
     "quote": "\"",
-    "escapes": ["\\n", "\\t", "\\r", "\\0", "\\\\", "\\\"", "\\{", "\\}"],
-    "interpolation": { "open": "{", "close": "}", "nestable": true, "maxDepth": 16 },
+    "escapes": [
+      "\\n",
+      "\\t",
+      "\\r",
+      "\\0",
+      "\\\\",
+      "\\\"",
+      "\\{",
+      "\\}"
+    ],
+    "interpolation": {
+      "open": "{",
+      "close": "}",
+      "nestable": true,
+      "maxDepth": 16
+    },
     "formatSpecSeparator": ":",
     "multiline": false,
     "source": "beans/compiler/bootstrap/lexer.cpp — consume_string_body(), split_fmt_spec()"
   },
-
   "numbers": {
     "digitSeparator": "_",
-    "hexPrefixes": ["0x", "0X"],
-    "binaryPrefixes": ["0b", "0B"],
-    "exponent": ["e", "E"],
+    "hexPrefixes": [
+      "0x",
+      "0X"
+    ],
+    "binaryPrefixes": [
+      "0b",
+      "0B"
+    ],
+    "exponent": [
+      "e",
+      "E"
+    ],
     "source": "beans/compiler/bootstrap/lexer.cpp — scan_number()"
   },
-
   "keywords": {
     "$comment": [
       "The 33 reserved spellings, in declaration order, straight from the",
@@ -55,27 +77,95 @@
     ],
     "source": "beans/compiler/bootstrap/token.cpp — keyword_or_ident()",
     "reserved": [
-      "class", "struct", "union", "interface", "enum", "fn", "let", "var", "pub", "override",
-      "if", "else", "for", "in", "match", "return", "break", "continue",
-      "import", "as", "defer", "unsafe", "extern", "new",
-      "extends", "implements", "static", "move", "take", "inout",
-      "self", "true", "false"
+      "class",
+      "struct",
+      "union",
+      "interface",
+      "enum",
+      "fn",
+      "let",
+      "var",
+      "pub",
+      "override",
+      "if",
+      "else",
+      "for",
+      "in",
+      "match",
+      "return",
+      "break",
+      "continue",
+      "import",
+      "as",
+      "defer",
+      "unsafe",
+      "extern",
+      "new",
+      "extends",
+      "implements",
+      "static",
+      "move",
+      "take",
+      "inout",
+      "self",
+      "true",
+      "false"
     ],
     "deprecated": {
       "take": "Reserved and lexed, but the parser rejects it: \"'take' was removed — use 'move'\". See beans/compiler/bootstrap/parser.cpp — parse_unary()."
     },
     "byRole": {
-      "declaration": ["class", "struct", "union", "interface", "enum", "fn", "let", "var"],
-      "modifier": ["pub", "override", "static", "extern", "unsafe", "move", "take", "inout"],
-      "control": ["if", "else", "for", "in", "match", "return", "break", "continue", "defer"],
-      "operatorLike": ["as", "new"],
-      "relation": ["extends", "implements"],
-      "import": ["import"],
-      "variable": ["self"],
-      "constant": ["true", "false"]
+      "declaration": [
+        "class",
+        "struct",
+        "union",
+        "interface",
+        "enum",
+        "fn",
+        "let",
+        "var"
+      ],
+      "modifier": [
+        "pub",
+        "override",
+        "static",
+        "extern",
+        "unsafe",
+        "move",
+        "take",
+        "inout"
+      ],
+      "control": [
+        "if",
+        "else",
+        "for",
+        "in",
+        "match",
+        "return",
+        "break",
+        "continue",
+        "defer"
+      ],
+      "operatorLike": [
+        "as",
+        "new"
+      ],
+      "relation": [
+        "extends",
+        "implements"
+      ],
+      "import": [
+        "import"
+      ],
+      "variable": [
+        "self"
+      ],
+      "constant": [
+        "true",
+        "false"
+      ]
     }
   },
-
   "contextualKeywords": {
     "$comment": [
       "Not reserved — an ordinary identifier in any other position. Highlight",
@@ -90,11 +180,28 @@
       "highlighting."
     ],
     "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers', 'Decided'; beans/compiler/bootstrap/parser.cpp — parse_decl(), parse_stmt(), parse_await(), at_package_clause()",
-    "modifiers": ["unique", "packed", "align", "feature", "opaque", "async"],
-    "variables": ["super"],
-    "typeOperators": ["size_of", "align_of", "offset_of"],
-    "declarations": ["package"],
-    "expressionOperators": ["await"],
+    "modifiers": [
+      "unique",
+      "packed",
+      "align",
+      "feature",
+      "opaque",
+      "async"
+    ],
+    "variables": [
+      "super"
+    ],
+    "typeOperators": [
+      "size_of",
+      "align_of",
+      "offset_of"
+    ],
+    "declarations": [
+      "package"
+    ],
+    "expressionOperators": [
+      "await"
+    ],
     "recognizedWhen": {
       "unique": "immediately before `class`",
       "packed": "immediately before `struct` or `union`",
@@ -110,95 +217,223 @@
       "offset_of": "immediately before `(`"
     }
   },
-
   "notKeywords": {
     "$comment": "Called out because they look like keywords in other languages but are ordinary names in Beans.",
     "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers'",
-    "names": ["some", "none", "ok", "err", "spawn"]
+    "names": [
+      "some",
+      "none",
+      "ok",
+      "err",
+      "spawn"
+    ]
   },
-
   "types": {
     "source": "beans/spec/SYNTAX.md — 'Types'; beans/compiler/bootstrap/checker.cpp — builtin_generic_classes_",
     "primitives": [
-      "int", "i8", "i16", "i32", "i64",
-      "u8", "u16", "u32", "u64",
-      "float", "f32", "f64",
-      "decimal", "bool", "string", "byte"
+      "int",
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+      "u8",
+      "u16",
+      "u32",
+      "u64",
+      "float",
+      "f32",
+      "f64",
+      "decimal",
+      "bool",
+      "string",
+      "byte"
     ],
     "genericClasses": [
-      "List", "Map", "OrderedMap", "Thread", "Mutex", "Channel",
-      "Box", "Arena", "Shared", "Weak", "RawPtr", "Slice",
-      "Atomic", "StoredCallback"
+      "List",
+      "Map",
+      "OrderedMap",
+      "Thread",
+      "Mutex",
+      "Channel",
+      "Box",
+      "Arena",
+      "Shared",
+      "Weak",
+      "RawPtr",
+      "Slice",
+      "Atomic",
+      "StoredCallback"
     ],
-    "builtinClasses": ["Bytes", "File", "Dir", "MMap", "Error"],
-    "builtinEnums": ["Option", "Result", "AtomicInt", "CpuFeature", "RoundingMode", "MemoryOrder"],
+    "builtinClasses": [
+      "Bytes",
+      "File",
+      "Dir",
+      "MMap",
+      "Error"
+    ],
+    "builtinEnums": [
+      "Option",
+      "Result",
+      "AtomicInt",
+      "CpuFeature",
+      "RoundingMode",
+      "MemoryOrder"
+    ],
     "simdTypePattern": "^(?:i8|i16|i32|i64|u8|u16|u32|u64|f32|f64)x[0-9]+$",
     "unit": "unit"
   },
-
   "operators": {
     "$comment": "Longest-match order preserved; a generator must not reorder these.",
     "source": "beans/compiler/bootstrap/lexer.cpp — scan_all(); beans/compiler/bootstrap/token.cpp — to_string()",
-    "assignment": ["=", "+=", "-=", "*=", "/=", "%="],
-    "comparison": ["==", "!=", "<=", ">=", "<", ">"],
-    "logical": ["&&", "||", "!"],
-    "arithmetic": ["+", "-", "*", "/", "%"],
-    "bitwise": ["&", "|", "^", "~", "<<", ">>"],
-    "range": ["..=", ".."],
-    "arrow": ["->", "=>"],
-    "other": [".", "?", "@", ":", ",", ";"]
-  },
-
-  "brackets": {
-    "pairs": [
-      { "open": "(", "close": ")" },
-      { "open": "[", "close": "]" },
-      { "open": "{", "close": "}" }
+    "assignment": [
+      "=",
+      "+=",
+      "-=",
+      "*=",
+      "/=",
+      "%="
     ],
-    "autoClose": [
-      { "open": "(", "close": ")" },
-      { "open": "[", "close": "]" },
-      { "open": "{", "close": "}" },
-      { "open": "\"", "close": "\"", "notIn": ["string", "comment"] }
+    "comparison": [
+      "==",
+      "!=",
+      "<=",
+      ">=",
+      "<",
+      ">"
+    ],
+    "logical": [
+      "&&",
+      "||",
+      "!"
+    ],
+    "arithmetic": [
+      "+",
+      "-",
+      "*",
+      "/",
+      "%"
+    ],
+    "bitwise": [
+      "&",
+      "|",
+      "^",
+      "~",
+      "<<",
+      ">>"
+    ],
+    "range": [
+      "..=",
+      ".."
+    ],
+    "arrow": [
+      "->",
+      "=>"
+    ],
+    "other": [
+      ".",
+      "?",
+      "@",
+      ":",
+      ",",
+      ";"
     ]
   },
-
+  "brackets": {
+    "pairs": [
+      {
+        "open": "(",
+        "close": ")"
+      },
+      {
+        "open": "[",
+        "close": "]"
+      },
+      {
+        "open": "{",
+        "close": "}"
+      }
+    ],
+    "autoClose": [
+      {
+        "open": "(",
+        "close": ")"
+      },
+      {
+        "open": "[",
+        "close": "]"
+      },
+      {
+        "open": "{",
+        "close": "}"
+      },
+      {
+        "open": "\"",
+        "close": "\"",
+        "notIn": [
+          "string",
+          "comment"
+        ]
+      }
+    ]
+  },
   "statements": {
     "terminator": "newline",
     "semicolons": false,
     "$comment": "Go-style: a newline ends a statement only after a token that can end one, so `} else {` must be on one line.",
     "source": "beans/compiler/bootstrap/lexer.cpp — ends_statement()"
   },
-
   "manifest": {
     "fileName": "beans.pot",
-    "keywords": ["module", "kind", "require", "link", "search", "library", "framework"],
-    "kinds": ["application", "library"],
+    "keywords": [
+      "module",
+      "kind",
+      "require",
+      "link",
+      "search",
+      "library",
+      "framework"
+    ],
+    "kinds": [
+      "application",
+      "library"
+    ],
     "source": "beans/spec/SYNTAX.md — 'Files, modules, imports'"
   },
-
   "languageServer": {
     "$comment": [
       "The compiler is the only language engine. Editor clients must not add a",
       "second one — they negotiate these capabilities over LSP and render them."
     ],
     "command": "beansc",
-    "args": ["lsp"],
-    "source": "beans/compiler/bootstrap/lspserver.cpp — on_initialize(), dispatch()",
+    "args": [
+      "lsp"
+    ],
+    "source": "beans/compiler/beans/lsp_server.b — lsp_capabilities(), dispatch(); the bootstrap's beans/compiler/bootstrap/lspserver.cpp advertises the subset marked below",
     "capabilities": [
-      "textDocumentSync (full)",
+      "textDocumentSync (incremental, openClose, save)",
       "hoverProvider",
       "signatureHelpProvider",
       "completionProvider",
       "definitionProvider",
+      "declarationProvider",
+      "typeDefinitionProvider",
+      "implementationProvider",
       "referencesProvider",
+      "documentHighlightProvider",
       "documentSymbolProvider",
+      "workspaceSymbolProvider",
+      "callHierarchyProvider",
+      "typeHierarchyProvider",
       "semanticTokensProvider (full)",
       "renameProvider (prepareProvider)"
     ],
-    "completionTriggerCharacters": ["."],
-    "signatureHelpTriggerCharacters": ["(", ","],
-
+    "completionTriggerCharacters": [
+      "."
+    ],
+    "signatureHelpTriggerCharacters": [
+      "(",
+      ","
+    ],
     "semanticTokens": {
       "$comment": [
         "The two compiler implementations advertise different legends today.",
@@ -214,19 +449,58 @@
       "bootstrap": {
         "source": "beans/compiler/bootstrap/lsp.cpp — semantic_token_types()",
         "types": [
-          "type", "function", "method", "parameter",
-          "variable", "property", "enum", "enumMember"
+          "type",
+          "function",
+          "method",
+          "parameter",
+          "variable",
+          "property",
+          "enum",
+          "enumMember"
         ]
       },
       "selfHosted": {
-        "source": "beans/compiler/beans/lsp.b — the initialize reply's tokenTypes",
-        "types": ["type", "function", "variable", "property", "enumMember", "keyword"]
+        "source": "beans/compiler/beans/lsp_server.b — lsp_capabilities()'s tokenTypes",
+        "types": [
+          "type",
+          "function",
+          "variable",
+          "property",
+          "enumMember",
+          "keyword"
+        ]
       },
       "all": [
-        "type", "function", "method", "parameter",
-        "variable", "property", "enum", "enumMember", "keyword"
+        "type",
+        "function",
+        "method",
+        "parameter",
+        "variable",
+        "property",
+        "enum",
+        "enumMember",
+        "keyword"
       ],
       "modifiers": []
+    },
+    "bootstrapCapabilities": {
+      "$comment": [
+        "The C++ stage-0 server is bootstrap-only and advertises the original,",
+        "smaller set. Clients negotiate at initialize and must not assume either",
+        "list; this one records what the older server still answers so a user on a",
+        "stage-0 build gets no broken menu entries."
+      ],
+      "capabilities": [
+        "textDocumentSync (full)",
+        "hoverProvider",
+        "signatureHelpProvider",
+        "completionProvider",
+        "definitionProvider",
+        "referencesProvider",
+        "documentSymbolProvider",
+        "semanticTokensProvider (full)",
+        "renameProvider (prepareProvider)"
+      ]
     }
   }
 }
