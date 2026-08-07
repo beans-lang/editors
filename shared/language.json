@@ -79,12 +79,36 @@
   "contextualKeywords": {
     "$comment": [
       "Not reserved — an ordinary identifier in any other position. Highlight",
-      "them, but never treat them as reserved words."
+      "them, but never treat them as reserved words.",
+      "",
+      "`recognizedWhen` is the exact shape the compiler's parser tests for.",
+      "It is the contract for every generated highlighting rule: outside that",
+      "shape the word is a name, and painting it as a keyword is a bug. The",
+      "compiler's own sources are the proof — `compiler/beans/module.b` has a",
+      "local called `package`, `compiler/beans/layout.b` a field called",
+      "`align` — so any rule that over-matches breaks the compiler's own",
+      "highlighting."
     ],
-    "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers', 'Decided'; beans/compiler/bootstrap/parser.cpp — `opaque`",
-    "modifiers": ["unique", "packed", "align", "feature", "opaque"],
+    "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers', 'Decided'; beans/compiler/bootstrap/parser.cpp — parse_decl(), parse_stmt(), parse_await(), at_package_clause()",
+    "modifiers": ["unique", "packed", "align", "feature", "opaque", "async"],
     "variables": ["super"],
-    "typeOperators": ["size_of", "align_of", "offset_of"]
+    "typeOperators": ["size_of", "align_of", "offset_of"],
+    "declarations": ["package"],
+    "expressionOperators": ["await"],
+    "recognizedWhen": {
+      "unique": "immediately before `class`",
+      "packed": "immediately before `struct` or `union`",
+      "opaque": "immediately before `struct`",
+      "align": "immediately before `(` — `align(8)`; a field named `align` reads `align:`",
+      "feature": "immediately before a string literal — `feature \"aes\" fn`",
+      "async": "immediately before `fn`, or the exact pair `async let` inside an async body",
+      "await": "prefix of an expression, inside an async body only",
+      "package": "`package <name>`, before every import and declaration in a file",
+      "super": "a receiver inside a method of a class that extends another",
+      "size_of": "immediately before `(`",
+      "align_of": "immediately before `(`",
+      "offset_of": "immediately before `(`"
+    }
   },
 
   "notKeywords": {

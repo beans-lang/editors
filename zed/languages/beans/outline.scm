@@ -5,6 +5,7 @@
   (visibility_modifier)? @context
   (static_modifier)? @context
   (override_modifier)? @context
+  (async_modifier)? @context
   "fn" @context
   name: (identifier) @name) @item
 

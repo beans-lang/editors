@@ -7,6 +7,41 @@ matching the tag.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`async` and `await` are highlighted.** Both landed in the compiler with
+  async/await and neither was known here, so an `async fn` read as a stray
+  name and, worse, the tree-sitter grammar could not parse the files that use
+  them: `stdlib/std/net/net.b` and `test/cases/async_cross_thread_close.b`
+  both failed the whole-repository corpus parse. They parse now.
+
+  `async fn`, `async let`, `await <expr>` and the outline entry for an async
+  function are all covered.
+
+- **The `package` clause is highlighted.** `package <name>` opens every file
+  the compiler loads as a package. The clause is a declaration in the
+  tree-sitter grammar, a rule of its own in the TextMate grammar, and its name
+  reads as a namespace in both.
+
+### Changed
+
+- `shared/language.json` records `contextualKeywords.recognizedWhen` — the
+  exact shape the compiler's parser tests for, one line per contextual
+  keyword. It is the contract every highlighting rule is written against.
+- `npm run sync` checks the contextual keywords too: that none of them has
+  become reserved, that the compiler still spells each one, and that each has
+  its rule written down.
+
+### Fixed
+
+- A field, parameter or local called `async`, `await` or `package` stays an
+  ordinary name. None of the three is reserved, and the compiler's own sources
+  use all three as names, so a rule that over-matched would have broken
+  highlighting on the compiler itself. `src/scanner.c` now does the same
+  one-token lookahead the compiler's parser does.
+
 ## [0.1.2] - 2026-08-04
 
 ### Fixed

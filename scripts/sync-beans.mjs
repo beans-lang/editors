@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { editorsRoot, loadLanguageData } from './lib/language-data.mjs';
+import { contextualKeywords, editorsRoot, loadLanguageData } from './lib/language-data.mjs';
 
 const args = process.argv.slice(2);
 const asJson = args.includes('--json');
@@ -85,6 +85,57 @@ const compare = (what, source, expected, actual) => {
       keywords,
       data.keywords.reserved,
     );
+  }
+}
+
+// ---- contextual keywords ----------------------------------------------------
+// These are the words the compiler decides about by looking at their
+// neighbours, so they are the ones a highlighting rule gets wrong. Two things
+// are checked: that none of them has quietly become reserved, and that the
+// compiler still spells each one — a rename would otherwise leave a rule
+// painting a word the language no longer knows.
+{
+  const contextual = contextualKeywords(data);
+  const reserved = data.keywords.reserved.filter((w) => contextual.includes(w));
+  if (reserved.length > 0) {
+    findings.push({
+      what: 'contextual keywords',
+      source: 'shared/language.json',
+      missing: [],
+      extra: reserved,
+      note: 'listed as both reserved and contextual — a word is one or the other',
+    });
+  }
+
+  // parser.cpp decides every one of them except `super`, which the checker
+  // resolves.
+  const sources = ['compiler/bootstrap/parser.cpp', 'compiler/bootstrap/checker.cpp']
+    .map((path) => read(path))
+    .join('\n');
+  const unspelled = contextual.filter((word) => !sources.includes(`"${word}"`));
+  if (unspelled.length > 0) {
+    findings.push({
+      what: 'contextual keywords',
+      source: 'compiler/bootstrap/parser.cpp, compiler/bootstrap/checker.cpp',
+      missing: [],
+      extra: unspelled,
+      note: 'shared/language.json highlights these but the compiler never names them',
+    });
+  }
+
+  // Every one of them needs its rule written down, or the next person to touch
+  // a generator has nothing to check a pattern against.
+  const undocumented = contextual.filter(
+    (word) => !(word in data.contextualKeywords.recognizedWhen),
+  );
+  if (undocumented.length > 0) {
+    findings.push({
+      what: 'contextual keywords',
+      source: 'shared/language.json',
+      missing: undocumented,
+      extra: [],
+      note: 'no recognizedWhen entry — record the exact shape the parser tests for',
+    });
   }
 }
 

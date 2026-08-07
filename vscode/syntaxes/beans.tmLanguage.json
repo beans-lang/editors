@@ -24,6 +24,9 @@
           "include": "#number"
         },
         {
+          "include": "#package"
+        },
+        {
           "include": "#declaration"
         },
         {
@@ -256,6 +259,21 @@
         }
       ]
     },
+    "package": {
+      "patterns": [
+        {
+          "match": "^\\s*(package)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*(?://|$))",
+          "captures": {
+            "1": {
+              "name": "keyword.control.package.beans"
+            },
+            "2": {
+              "name": "entity.name.namespace.beans"
+            }
+          }
+        }
+      ]
+    },
     "import": {
       "patterns": [
         {
@@ -330,6 +348,14 @@
         {
           "name": "storage.modifier.beans",
           "match": "\\bfeature\\b(?=\\s*\")"
+        },
+        {
+          "name": "storage.modifier.async.beans",
+          "match": "\\basync\\b(?=\\s+(?:fn|let)\\b)"
+        },
+        {
+          "name": "keyword.operator.await.beans",
+          "match": "\\bawait\\b(?=\\s+[A-Za-z_(])"
         },
         {
           "name": "support.function.builtin.beans",

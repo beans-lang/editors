@@ -1,4 +1,97 @@
 ================================================================================
+A package clause comes before the imports
+================================================================================
+
+package money
+
+import std.io
+
+pub fn zero() -> int { return 0 }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_declaration
+    (identifier))
+  (import_declaration
+    (import_path))
+  (function_declaration
+    (visibility_modifier)
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (integer_literal)))))
+
+================================================================================
+The declared name need not match the directory
+================================================================================
+
+package transport
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_declaration
+    (identifier)))
+
+================================================================================
+package is an ordinary name after the first declaration
+================================================================================
+
+package main
+
+class Release {
+    package: string
+}
+
+fn describe(package: string) -> string {
+    let package2: string = package
+    return package2
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_declaration
+    (identifier))
+  (class_declaration
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (identifier))
+      (return_statement
+        (identifier)))))
+
+================================================================================
+A file with no package clause still parses
+================================================================================
+
+fn main() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block)))
+
+================================================================================
 Imports
 ================================================================================
 

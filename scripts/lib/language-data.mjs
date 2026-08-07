@@ -25,7 +25,10 @@ export function keywordsLongestFirst(data) {
 /** All contextual keywords in one flat list. */
 export function contextualKeywords(data) {
   const c = data.contextualKeywords;
-  return [...c.modifiers, ...c.variables, ...c.typeOperators];
+  return [
+    ...c.modifiers, ...c.variables, ...c.typeOperators,
+    ...c.declarations, ...c.expressionOperators,
+  ];
 }
 
 /** Every builtin type name (primitives excluded). */
