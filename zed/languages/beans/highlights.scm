@@ -81,6 +81,10 @@
 (import_declaration path: (import_path) @string.special.path)
 (import_declaration alias: (identifier) @namespace)
 
+; The package clause names the package itself, so it reads like an import.
+(package_declaration "package" @keyword.import)
+(package_declaration name: (identifier) @namespace)
+
 (layout_expression operator: _ @function.builtin)
 
 ; Keywords -------------------------------------------------------------------
@@ -144,8 +148,14 @@
 (unique_modifier) @keyword.modifier
 (packed_modifier) @keyword.modifier
 (opaque_modifier) @keyword.modifier
+(async_modifier) @keyword.modifier
 
 (align_modifier (align_keyword) @keyword.modifier)
+
+; await is a prefix operator on an expression, so it takes the same capture as
+; the other operator-like keywords, as and new, rather than a coroutine capture
+; that no theme is required to know.
+(await_operator) @keyword.operator
 
 ; Operators and punctuation --------------------------------------------------
 [

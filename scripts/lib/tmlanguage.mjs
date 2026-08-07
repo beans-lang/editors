@@ -78,6 +78,7 @@ export function buildTmLanguage(data) {
           { include: '#comment' },
           { include: '#string' },
           { include: '#number' },
+          { include: '#package' },
           { include: '#declaration' },
           { include: '#import' },
           { include: '#keyword' },
@@ -230,6 +231,22 @@ export function buildTmLanguage(data) {
         ],
       },
 
+      // `package money`, the first declaration in a file. TextMate has no way
+      // to know a line is the first one, so the rule asks for what it can see:
+      // the clause starts its line and is followed by a bare name. That keeps
+      // `let package = ...` and `self.package` ordinary names, which they are.
+      package: {
+        patterns: [
+          {
+            match: `^\\s*(package)\\s+(${IDENT})\\b(?=\\s*(?://|$))`,
+            captures: {
+              1: { name: 'keyword.control.package.beans' },
+              2: { name: 'entity.name.namespace.beans' },
+            },
+          },
+        ],
+      },
+
       import: {
         patterns: [
           {
@@ -270,6 +287,20 @@ export function buildTmLanguage(data) {
           },
           { name: 'storage.modifier.beans', match: '\\balign\\b(?=\\s*\\()' },
           { name: 'storage.modifier.beans', match: '\\bfeature\\b(?=\\s*")' },
+          // `async fn` declares one; `async let` starts a child task. Nothing
+          // else makes `async` a keyword, so a field or local keeps the name.
+          {
+            name: 'storage.modifier.async.beans',
+            match: '\\basync\\b(?=\\s+(?:fn|let)\\b)',
+          },
+          // `await` takes an expression. The compiler also requires an async
+          // body, which TextMate cannot see, so the rule asks for the one
+          // thing it can: a space and then the start of an operand. That
+          // leaves `await = 1`, `await.field` and `await(x)` as names.
+          {
+            name: 'keyword.operator.await.beans',
+            match: '\\bawait\\b(?=\\s+[A-Za-z_(])',
+          },
           {
             name: 'support.function.builtin.beans',
             match: `${wordAlternation(ctx.typeOperators)}(?=\\s*\\()`,

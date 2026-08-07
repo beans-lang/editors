@@ -27,6 +27,9 @@ export const KEYWORD_NODES = {
   unique: 'unique_modifier',
   packed: 'packed_modifier',
   opaque: 'opaque_modifier',
+  // An external token: `async` is a keyword only before `fn` or `let`, which
+  // needs lookahead. See tree-sitter-beans/src/scanner.c.
+  async: 'async_modifier',
   // Highlighted by their own rules further up (`@variable.special`,
   // `@constant.builtin`) rather than as keywords, but listed here so the
   // coverage test can find where each reserved word is styled.
@@ -113,6 +116,10 @@ ${builtinTypeNames(data).map((t) => `    "${t}"`).join('\n')}))
 (import_declaration path: (import_path) @string.special.path)
 (import_declaration alias: (identifier) @namespace)
 
+; The package clause names the package itself, so it reads like an import.
+(package_declaration "package" @keyword.import)
+(package_declaration name: (identifier) @namespace)
+
 (layout_expression operator: _ @function.builtin)
 
 ; Keywords -------------------------------------------------------------------
@@ -130,6 +137,11 @@ ${scmKeywords(kw.import, '@keyword.import')}
 ; modifiers. Everywhere else they are ordinary identifiers.
 ${scmKeywords(ctx.modifiers.filter((m) => m !== 'align'), '@keyword.modifier')}
 (align_modifier (align_keyword) @keyword.modifier)
+
+; await is a prefix operator on an expression, so it takes the same capture as
+; the other operator-like keywords, as and new, rather than a coroutine capture
+; that no theme is required to know.
+(await_operator) @keyword.operator
 
 ; Operators and punctuation --------------------------------------------------
 ${scmList(operators, '@operator')}
@@ -172,6 +184,7 @@ export function buildOutline() {
   (visibility_modifier)? @context
   (static_modifier)? @context
   (override_modifier)? @context
+  (async_modifier)? @context
   "fn" @context
   name: (identifier) @name) @item
 

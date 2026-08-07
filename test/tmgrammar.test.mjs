@@ -275,6 +275,86 @@ describe('contextual keywords', () => {
   });
 });
 
+describe('the package clause', () => {
+  test('package names the package', async () => {
+    const source = 'package money\n\nimport std.io\n';
+    await assertScope(source, 'package', 'keyword.control.package.beans');
+    await assertScope(source, 'money', 'entity.name.namespace.beans');
+  });
+
+  test('a trailing comment does not stop the clause matching', async () => {
+    await assertScope('package main // the root\n', 'package', 'keyword.control.package.beans');
+  });
+
+  test('a field named package is not a keyword', async () => {
+    // The compiler's own module.b uses `package` as an ordinary name, so this
+    // is the case that breaks first if the rule over-matches.
+    const scopes = await scopesOf('class Release {\n    package: string\n}\n', 'package');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword')),
+      `a field called package must stay a name, got ${scopes}`,
+    );
+  });
+
+  test('a local named package is not a keyword', async () => {
+    const scopes = await scopesOf('fn f() {\n    let package: string = ""\n}\n', 'package');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword')),
+      `a local called package must stay a name, got ${scopes}`,
+    );
+  });
+});
+
+describe('async and await', () => {
+  test('async before fn is a modifier', async () => {
+    await assertScope('async fn watch() -> int {}\n', 'async', 'storage.modifier.async.beans');
+  });
+
+  test('async before let is a modifier', async () => {
+    await assertScope(
+      'async let parked: int = work()\n',
+      'async',
+      'storage.modifier.async.beans',
+    );
+  });
+
+  test('an async function still names the function', async () => {
+    await assertScope('pub async fn fetch() -> int {}\n', 'fetch', 'entity.name.function.beans');
+  });
+
+  test('await before an operand is an operator', async () => {
+    await assertScope(
+      'let woke: bool = await net.await_readable(fd)\n',
+      'await',
+      'keyword.operator.await.beans',
+    );
+  });
+
+  test('a field named async is not a keyword', async () => {
+    const scopes = await scopesOf('class Job {\n    async: int\n}\n', 'async');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('storage.modifier')),
+      `a field called async must stay a name, got ${scopes}`,
+    );
+  });
+
+  test('a local named await is not a keyword', async () => {
+    const scopes = await scopesOf('fn f() {\n    var await: bool = false\n}\n', 'await');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword.operator.await')),
+      `a local called await must stay a name, got ${scopes}`,
+    );
+  });
+
+  test('assigning to a name called await is not an operator', async () => {
+    const scopes = await scopesOf('fn f() {\n    await = true\n}\n', 'await');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword.operator.await')),
+      `await followed by = must stay a name, got ${scopes}`,
+    );
+  });
+});
+
 describe('the beans.pot manifest grammar', () => {
   const scope = 'source.beans-manifest';
 

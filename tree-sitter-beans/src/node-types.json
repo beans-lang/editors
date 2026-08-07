@@ -38,6 +38,10 @@
     "named": true,
     "subtypes": [
       {
+        "type": "await_expression",
+        "named": true
+      },
+      {
         "type": "binary_expression",
         "named": true
       },
@@ -332,6 +336,32 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "await_expression",
+    "named": true,
+    "fields": {
+      "operand": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "await_operator",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -1074,6 +1104,10 @@
           "named": true
         },
         {
+          "type": "async_modifier",
+          "named": true
+        },
+        {
           "type": "extern_modifier",
           "named": true
         },
@@ -1713,6 +1747,22 @@
     }
   },
   {
+    "type": "package_declaration",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "parameter",
     "named": true,
     "fields": {
@@ -1964,6 +2014,10 @@
         },
         {
           "type": "import_declaration",
+          "named": true
+        },
+        {
+          "type": "package_declaration",
           "named": true
         }
       ]
@@ -2371,6 +2425,10 @@
       "required": false,
       "types": [
         {
+          "type": "async_modifier",
+          "named": true
+        },
+        {
           "type": "visibility_modifier",
           "named": true
         }
@@ -2564,6 +2622,14 @@
     "named": false
   },
   {
+    "type": "async_modifier",
+    "named": true
+  },
+  {
+    "type": "await_operator",
+    "named": true
+  },
+  {
     "type": "block_comment",
     "named": true,
     "extra": true
@@ -2701,6 +2767,10 @@
   {
     "type": "override_modifier",
     "named": true
+  },
+  {
+    "type": "package",
+    "named": false
   },
   {
     "type": "packed_modifier",
