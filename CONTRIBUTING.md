@@ -100,6 +100,16 @@ To add a keyword, a builtin type or an operator:
 
 Never edit a generated file. Each one carries a banner saying so.
 
+A **contextual** keyword needs one thing more: an entry in
+`contextualKeywords.recognizedWhen` giving the exact shape the compiler's
+parser tests for. Every highlighting rule for that word is written against that
+line, and `npm run sync` fails without it. The rule matters more than it looks
+— `unique`, `packed`, `align`, `feature`, `opaque`, `async`, `await`, `super`
+and `package` are all ordinary identifiers outside their one shape, and the
+compiler's own sources use several of them as names. Over-matching breaks
+highlighting on the compiler itself, so when a shape cannot be recognized for
+certain, fall back to the name rather than the keyword.
+
 ### Checking for drift
 
 ```bash
@@ -108,10 +118,16 @@ npm run sync -- --beans /path/to/beans
 ```
 
 `scripts/sync-beans.mjs` reads the compiler's own sources — the keyword table
-in `token.cpp`, `register_builtins()` in `checker.cpp`, the LSP dispatch table
-in `lspserver.cpp`, and both semantic-token legends — and reports differences in
+in `token.cpp`, the contextual keywords in `parser.cpp` and `checker.cpp`,
+`register_builtins()` in `checker.cpp`, the LSP dispatch table in
+`lspserver.cpp`, and both semantic-token legends — and reports differences in
 both directions: entries the compiler has that we lack, and entries we claim
 that the compiler no longer has.
+
+A finding here is not always a bug in this repository. When editor support
+lands before the compiler change it tracks, the check reports the new word as
+one "the compiler never names" — which is true, and the fix is to merge the
+compiler side first.
 
 ## The Tree-sitter grammar
 

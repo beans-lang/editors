@@ -77,6 +77,27 @@ closing delimiter cannot be found with a regular expression. `src/scanner.c`
 counts depth, matching `Lexer::skip_block_comment` in the compiler. An
 unterminated comment runs to end of input, which is what the compiler does.
 
+**`async` and `await` need one token of lookahead.** Neither is reserved. The
+compiler makes `async` a modifier only immediately before `fn` or `let`, and
+`await` an operator only inside an async body. A token regex cannot express
+either — tree-sitter's regexes have no lookahead, and a token that swallowed
+the word after `async` would hide it from the grammar — so `src/scanner.c`
+produces both, and produces an ordinary identifier otherwise. Both lookaheads
+stop at a newline, because a newline after `async` or `await` ends the
+statement in the compiler too.
+
+The scanner cannot see whether it is inside an async body, so `await` keeps the
+remaining ambiguity resolved the safe way: it needs a space and then the start
+of an operand, which leaves `await = 1`, `await.field`, `await(x)` and `await,`
+as names. Reading a name as a keyword is the failure that actually shows up in
+a file; reading a keyword as a name only costs a colour.
+
+**The package clause is positional.** `package <name>` is a keyword only as the
+first thing in a file, so `package_declaration` sits in `source_file` ahead of
+`_top_level` rather than among the declarations. That single position is what
+keeps `package` an ordinary name everywhere else — the compiler's own
+`module.b` has a local called `package`.
+
 **`primitive_type` carries no token precedence.** `int` is a prefix of
 `interface`. Raising `int` above the other keywords makes the keyword lexer
 stop at `int` and never reach `interface`, and every `interface` declaration in
@@ -87,7 +108,9 @@ the repository then fails to parse.
 modifier list — the compiler's own `layout.b` has a field called `align`, and
 `signal.b` has a local called `packed`. A keyword the parser allows in a
 position is a keyword the lexer will produce there, so the modifier sets are
-narrowed per declaration and `align(` is lexed as a single token.
+narrowed per declaration and `align(` is lexed as a single token. `async` is
+kept out of the shared `_modifier` set for the same reason: it attaches to `fn`
+and to `let`, never to a class, a struct or a field.
 
 **Struct and map literals lose ties.** `Name { ... }` is a struct literal
 wherever that reading completes; in `match x as? Circle { ... }` it does not,
