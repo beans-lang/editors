@@ -9,6 +9,25 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.2.1]
+
+### Fixed
+
+- **Zed highlighted nothing.** `zed/extension.toml` pins the exact grammar
+  revision Zed builds the parser from, and it still named the commit before
+  `package`, `async` and `await` were added to the grammar. The queries in
+  `zed/languages/beans/` had moved on and named `package_declaration`,
+  `async_modifier` and `await_operator`, which that parser cannot produce.
+  Tree-sitter rejects a whole query file on one unknown node type, so this
+  did not lose three rules — it lost every colour in the file, with no error
+  a user would ever see. Re-pinned to a revision that carries the current
+  parser.
+
+  A new check, `test/zed-queries.test.mjs`, now refuses any query naming a
+  node the pinned grammar cannot produce, refuses a pin without a generated
+  `parser.c`, and refuses a working-tree grammar that has drifted from the
+  pin. Restoring the old pin fails it, which is how it was verified.
+
 ## [0.2.0]
 
 ### Added
