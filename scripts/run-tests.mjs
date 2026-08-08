@@ -51,6 +51,11 @@ const steps = [
     args: ['--test', 'test/vscode-resolve.test.mjs'],
   },
   {
+    name: 'zed queries match the pinned grammar',
+    command: 'node',
+    args: ['--test', 'test/zed-queries.test.mjs'],
+  },
+  {
     name: 'tree-sitter corpus',
     command: join(editorsRoot, 'node_modules', '.bin', 'tree-sitter'),
     args: ['test'],
