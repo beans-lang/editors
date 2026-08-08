@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # test/zed-queries.test.mjs compares the working tree against the
+          # commit zed/extension.toml pins, and a depth-1 checkout does not
+          # contain it. Without history that check can only skip, which is
+          # exactly when a stale pin ships.
+          fetch-depth: 0
 
       # The beans compiler is the language authority and the LSP server under
       # test. Without it the drift check, the corpus parse and the LSP smoke
