@@ -1,6 +1,6 @@
 {
   "name": "beans-editors",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "description": "Editor integrations for the Beans programming language",
   "license": "Apache-2.0",
@@ -30,6 +30,7 @@
     "test:bundle": "node --test test/bundle.test.mjs",
     "test:grammar": "node --test test/tmgrammar.test.mjs",
     "test:resolve": "node --test test/vscode-resolve.test.mjs",
+    "test:debug": "node --test test/vscode-debug.test.mjs",
     "test:lsp": "node --test test/lsp-smoke.test.mjs",
     "test:treesitter": "npm --workspace tree-sitter-beans run test",
     "test:corpus": "node scripts/parse-corpus.mjs"

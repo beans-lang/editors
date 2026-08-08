@@ -3,10 +3,13 @@
 // The extension is a thin client. It starts `beansc lsp`, keeps it running,
 // and gets out of the way. TextMate highlighting paints a `.b` file the
 // instant it opens; everything else arrives from the compiler over LSP.
+// Debugging works the same way: `beansc debug-adapter` speaks DAP, and the
+// extension only finds it and starts it.
 
 import * as vscode from 'vscode';
 
 import { BeansLanguageClient } from './client';
+import { registerDebugger } from './debugger';
 
 let client: BeansLanguageClient | undefined;
 
@@ -24,6 +27,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   client = new BeansLanguageClient(output);
   context.subscriptions.push({ dispose: () => void client?.stop() });
+
+  // The debugger is the same compiler under a different subcommand. It needs
+  // no second engine in the editor either.
+  registerDebugger(context, output);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('beans.restartLanguageServer', async () => {

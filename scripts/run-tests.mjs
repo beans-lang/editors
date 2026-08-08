@@ -72,6 +72,11 @@ const steps = [
     args: ['--test', 'test/lsp-smoke.test.mjs'],
   },
   {
+    name: 'debugger wiring and a real DAP session',
+    command: 'node',
+    args: ['--test', 'test/vscode-debug.test.mjs'],
+  },
+  {
     name: 'language data matches the compiler',
     command: 'node',
     args: ['scripts/sync-beans.mjs', ...passthrough],

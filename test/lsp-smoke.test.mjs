@@ -200,7 +200,12 @@ describe('beansc lsp', { skip }, () => {
     const initialized = await client.reply(1);
     const caps = initialized.result.capabilities;
 
-    assert.equal(caps.textDocumentSync, 1, 'full document sync');
+    // Incremental sync: the client sends ranges, and the server applies them
+    // to the buffer it keeps. Older stage-0 servers answer 1 (full text) and
+    // the client copes, so this only asserts the shape it got.
+    const sync = caps.textDocumentSync;
+    const syncKind = typeof sync === 'number' ? sync : sync.change;
+    assert.ok(syncKind === 1 || syncKind === 2, `document sync kind: ${syncKind}`);
     assert.equal(caps.hoverProvider, true);
     assert.equal(caps.definitionProvider, true);
     assert.equal(caps.referencesProvider, true);
@@ -209,6 +214,20 @@ describe('beansc lsp', { skip }, () => {
     assert.ok(caps.signatureHelpProvider, 'signatureHelpProvider');
     assert.ok(caps.semanticTokensProvider, 'semanticTokensProvider');
     assert.equal(caps.renameProvider.prepareProvider, true);
+
+    // Everything shared/language.json claims the shipped server provides must
+    // actually be advertised. The list is the contract the clients render
+    // menus from; a stale entry is a menu item that does nothing.
+    const shipped = require(join(editorsRoot, 'shared', 'language.json'));
+    const providerOf = (entry) => entry.split(' ')[0];
+    for (const claim of shipped.languageServer.capabilities) {
+      const name = providerOf(claim);
+      if (name === 'textDocumentSync') continue;
+      assert.ok(
+        caps[name],
+        `shared/language.json claims ${name} but the server does not advertise it`,
+      );
+    }
 
     // The trigger characters and semantic-token legend recorded in
     // shared/language.json come from here.

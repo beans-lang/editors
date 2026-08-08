@@ -32,6 +32,7 @@ published yet. Two checks therefore skip in CI and only ever run locally:
 | Check | Needs |
 | --- | --- |
 | `real LSP smoke test against beansc lsp` | a built `beansc` |
+| `debugger wiring and a real DAP session` | a built `beansc` |
 | `language data matches the compiler` | `compiler/bootstrap` sources |
 
 The corpus parse does run in CI — the `.b` files it needs are in the public
@@ -50,7 +51,7 @@ tree-sitter-beans/       Tree-sitter grammar (Zed requires one)
 vscode/                  VS Code extension (TypeScript)
 zed/                     Zed extension (Rust → Wasm)
 icons/                   light/dark file icons for .b and beans.pot
-test/                    manifests, grammar fixtures, resolution, LSP smoke
+test/                    manifests, grammar fixtures, resolution, LSP and DAP
 ```
 
 ## Architecture
@@ -63,6 +64,14 @@ would drift from it.
 A client's whole job is to find `beansc`, spawn it as `beansc lsp`, and let LSP
 capability negotiation do the rest. If a feature is missing, it is missing from
 the compiler's language server, and that is where to add it.
+
+Debugging follows the same rule. The VS Code extension contributes a `beans`
+debug type whose only job is to start `beansc debug-adapter` — the compiler's
+own Debug Adapter Protocol server — and hand VS Code the pipe. Breakpoint
+placement, frames, variables, stepping and evaluation are all decided by the
+compiler. `src/debug.ts` holds the launch-configuration logic and imports
+nothing from `vscode`, so it can be tested with `node --test`; `src/debugger.ts`
+is the thin editor wrapper around it.
 
 The one thing the editors do own is the highlighting that appears before the
 server has started: a TextMate grammar for VS Code, a Tree-sitter grammar for
@@ -163,11 +172,13 @@ npm test -- --beans /path/to/beans  # point the beans-dependent steps somewhere
 | `tree-sitter test` | the grammar's corpus |
 | `scripts/parse-corpus.mjs` | the grammar parses every `.b` file in a beans checkout |
 | `scripts/check-rust.mjs` | `cargo fmt --check`, `check`, `clippy -D warnings`, and the Wasm build |
-| `test/lsp-smoke.test.mjs` | a real `beansc lsp` session, end to end |
+| `test/lsp-smoke.test.mjs` | a real `beansc lsp` session, end to end, and every capability `shared/language.json` claims |
+| `test/vscode-debug.test.mjs` | launch configurations, adapter resolution, and a real `beansc debug-adapter` session that stops at a breakpoint |
 | `scripts/sync-beans.mjs` | `shared/language.json` still matches the compiler |
 
 Individual steps have their own scripts — `npm run test:resolve`,
-`test:grammar`, `test:lsp`, `test:treesitter`, `test:corpus`, `check:rust`.
+`test:grammar`, `test:lsp`, `test:debug`, `test:treesitter`, `test:corpus`,
+`check:rust`.
 
 `test/vscode-resolve.test.mjs` runs against the compiled `vscode/out/beansc.js`
 rather than the TypeScript source, so it tests what ships. `src/beansc.ts`
@@ -175,17 +186,30 @@ imports nothing from `vscode` for exactly that reason.
 
 ## Open issues in `beansc lsp`
 
-Found while building and testing these clients. All three are compiler-side.
+Found while building and testing these clients. All of them are compiler-side.
 The clients work around them where they can, and the fixes belong in the beans
 repository.
 
-### Location URIs are not percent-encoded
+### Location URIs are not percent-encoded — fixed in the shipped server
 
-`path_to_uri` in `compiler/bootstrap/lspserver.cpp` is `"file://" + path`, so a
-file at `/a b/c.b` comes back as `file:///a b/c.b` rather than
-`file:///a%20b/c.b`. Both editors' URI parsers accept it today, but it is not a
-valid URI and a stricter client would reject it. `publishDiagnostics` is
-unaffected — it echoes the URI the client sent.
+The self-hosted server percent-encodes file URIs, so a file at `/a b/c.b` comes
+back as `file:///a%20b/c.b`. The bootstrap C++ server's `path_to_uri` in
+`compiler/bootstrap/lspserver.cpp` is still `"file://" + path`. Both editors'
+URI parsers accept the older form, so a stage-0 build works; a stricter client
+would not.
+
+### The two compiler implementations advertise different capabilities
+
+The shipped self-hosted server answers declaration, implementation, type
+definition, document highlight, workspace symbol, call hierarchy and type
+hierarchy, and asks for incremental document sync. The bootstrap C++ server
+answers the original, smaller set and asks for full sync.
+
+`shared/language.json` records both lists — `languageServer.capabilities` for
+the shipped server and `languageServer.bootstrapCapabilities` for stage 0 — and
+`test/lsp-smoke.test.mjs` checks every claim in the first list against a live
+server, so the file cannot advertise a menu item that does nothing. The client
+negotiates, so it never assumes either list.
 
 ### The two compiler implementations advertise different semantic token legends
 
@@ -199,12 +223,42 @@ Both clients ship styles for the union, so either build looks right, and
 smoke test asserts a subset relation rather than equality, which is what
 catches a compiler adding a token type the editors have no style for.
 
-### Member completion on builtin receivers is missing from the self-hosted server
+### Member completion on builtin receivers — fixed in the shipped server
 
-`p.` on a user class offers its fields and methods in both implementations, but
-`s.` where `s: string`, or `xs.` where `xs: List<int>`, returns top-level names
-from the self-hosted server. The bootstrap server's `members_of` handles
-builtins. The LSP smoke test asserts the behaviour both implementations share.
+`s.` where `s: string`, and `xs.` where `xs: List<int>`, now offer the built-in
+type's own members in the self-hosted server: the list is read out of the
+expression checker's registry, so it is exactly what would type-check. The
+bootstrap server has always handled this. The LSP smoke test asserts the
+behaviour both implementations share.
+
+### A request cannot be cancelled once it has started
+
+`beansc lsp` is single-threaded and reads its input strictly in order, so a
+`$/cancelRequest` is always read after the request it names has been answered.
+It is accepted and ignored. Honouring one would mean reading ahead of the
+request being computed, which needs either threads or a non-blocking read of
+stdin. LSP allows a server to answer a cancelled request normally, so no client
+is misled — but a slow request cannot be abandoned, and that is worth knowing
+when profiling a large workspace.
+
+### A running program cannot be paused
+
+`beansc debug-adapter` is single-threaded. While the program runs, the adapter
+is inside the interpreter and reads no input, so a `pause` request arriving
+mid-run cannot be seen. The adapter answers it with a failed response that says
+so instead of hanging or pretending. Set a breakpoint, or stop the session.
+
+### Native builds carry no Beans line table
+
+`beansc build --debug` produces an unoptimized binary with the platform's debug
+information for the C runtime, which is the foundation a native debugger needs.
+The LLVM emitter writes no `!DILocation`/`!DISubprogram` metadata for Beans
+functions, so lldb and gdb cannot stop on a Beans line. Beans functions are also
+emitted under generated symbol names (`.next.fnN`), which several compiler tests
+pin, so renaming them is a compiler-side change with its own differential to
+clear. `test/native_debug.sh` in the beans repository asserts this boundary and
+fails if the emitter starts writing debug metadata, so the documentation cannot
+go stale quietly.
 
 ## Releasing
 
