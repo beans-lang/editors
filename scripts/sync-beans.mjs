@@ -199,8 +199,11 @@ const compare = (what, source, expected, actual) => {
     });
   }
 
-  // The other direction: a capability we claim but the server no longer serves.
-  const documented = data.languageServer.capabilities.map((c) => c.split(' ')[0]);
+  // The other direction: a bootstrap capability we claim but the bootstrap
+  // server no longer serves. The self-hosted server has its own larger list.
+  const documented = data.languageServer.bootstrapCapabilities.capabilities.map(
+    (c) => c.split(' ')[0],
+  );
   const served = new Set(dispatched.map((m) => METHOD_TO_CAPABILITY[m]).filter(Boolean));
   const unserved = documented.filter((capability) => !served.has(capability));
   if (unserved.length > 0) {
@@ -240,19 +243,19 @@ const compare = (what, source, expected, actual) => {
 }
 
 {
-  const text = read('compiler/beans/lsp.b');
+  const text = read('compiler/beans/lsp_server.b');
   const legend = /"tokenTypes",\s*lsp_array\(\[([\s\S]*?)\]\)\)/.exec(text);
   if (legend === null) {
     findings.push({
       what: 'semantic token legend (self-hosted)',
-      source: 'compiler/beans/lsp.b',
+      source: 'compiler/beans/lsp_server.b',
       error: 'could not find the tokenTypes array',
     });
   } else {
     const types = [...legend[1].matchAll(/lsp_quote\("([^"]+)"\)/g)].map((m) => m[1]);
     compare(
       'semantic token legend (self-hosted)',
-      'compiler/beans/lsp.b — the initialize reply',
+      'compiler/beans/lsp_server.b — lsp_capabilities()',
       types,
       data.languageServer.semanticTokens.selfHosted.types,
     );

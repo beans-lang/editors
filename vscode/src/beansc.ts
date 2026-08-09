@@ -5,8 +5,9 @@
 // passed in, so the resolution order can be tested directly with `node --test`
 // instead of only inside a running editor.
 //
-// There is no published Beans binary yet, so there is nothing to download.
-// When the compiler is missing we say so and stop.
+// Beans ships native releases. The extension does not download or update the
+// compiler; it finds an installed copy and tells the user how to install one
+// when none is available.
 
 import { accessSync, constants, statSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -16,6 +17,7 @@ import { delimiter, isAbsolute, join, resolve } from 'node:path';
 export type ResolutionSource =
   | 'setting'
   | 'environment'
+  | 'installation'
   | 'workspace'
   | 'path'
   | 'development';
@@ -96,8 +98,8 @@ export function expandPath(
 
 /**
  * Relative locations of a compiler built from source, tried against every
- * workspace folder. These exist because `beans` and `editors` are usually
- * checked out side by side and there is no released binary to install yet.
+ * workspace folder. These exist because `beans` and `editors` are often
+ * checked out side by side during development.
  */
 const DEVELOPMENT_RELATIVE_PATHS = [
   join('build'),
@@ -105,13 +107,32 @@ const DEVELOPMENT_RELATIVE_PATHS = [
   join('..', 'beans', 'build'),
 ];
 
+/** Default installer roots, including an explicit BEANS_HOME override. */
+function installationRoots(
+  env: Record<string, string | undefined>,
+  platform: NodeJS.Platform,
+): string[] {
+  const roots: string[] = [];
+  if (env.BEANS_HOME?.trim()) roots.push(env.BEANS_HOME.trim());
+
+  const standard =
+    platform === 'win32'
+      ? env.LOCALAPPDATA?.trim()
+        ? join(env.LOCALAPPDATA.trim(), 'Beans')
+        : undefined
+      : join(env.HOME?.trim() || homedir(), '.beans');
+  if (standard !== undefined && !roots.includes(standard)) roots.push(standard);
+  return roots;
+}
+
 /**
  * Resolves `beansc` in the documented order:
  *
  *   1. the `beans.compiler.path` setting
  *   2. the `BEANSC` environment variable
- *   3. `beansc` at a workspace root, then on `PATH`
- *   4. a source build — `build/beansc`, `beans/build/beansc`,
+ *   3. the normal Beans installer location
+ *   4. `beansc` at a workspace root, then on `PATH`
+ *   5. a source build — `build/beansc`, `beans/build/beansc`,
  *      `../beans/build/beansc` — unless development paths are switched off
  *
  * Throws `CompilerNotFoundError` carrying everything that was tried, so the
@@ -160,7 +181,16 @@ export function resolveBeansc(options: ResolveOptions): Resolution {
     throw new CompilerNotFoundError(searched);
   }
 
-  // 3a. A compiler sitting at a workspace root.
+  // 3. The installer location. GUI editors often start with a stale PATH, so
+  //    check this directly instead of requiring a logout or editor restart.
+  for (const root of installationRoots(env, platform)) {
+    for (const name of names) {
+      const hit = accept(join(root, 'bin', name), 'installation', root);
+      if (hit) return hit;
+    }
+  }
+
+  // 4a. A compiler sitting at a workspace root.
   for (const folder of workspaceFolders) {
     for (const name of names) {
       const hit = accept(join(folder, name), 'workspace', folder);
@@ -168,7 +198,7 @@ export function resolveBeansc(options: ResolveOptions): Resolution {
     }
   }
 
-  // 3b. PATH.
+  // 4b. PATH.
   for (const dir of (env.PATH ?? '').split(delimiter)) {
     if (dir === '') continue;
     for (const name of names) {
@@ -177,7 +207,7 @@ export function resolveBeansc(options: ResolveOptions): Resolution {
     }
   }
 
-  // 4. A compiler built from source next to the workspace.
+  // 5. A compiler built from source next to the workspace.
   if (searchDevelopmentPaths) {
     for (const folder of workspaceFolders) {
       for (const relative of DEVELOPMENT_RELATIVE_PATHS) {
@@ -200,9 +230,8 @@ export function resolveBeansc(options: ResolveOptions): Resolution {
 export function notFoundMessage(): string {
   return (
     'Beans language features are off: the `beansc` compiler was not found. ' +
-    'Set `beans.compiler.path`, or put `beansc` on your PATH. ' +
-    'There is no published Beans binary yet, so it has to be built from the ' +
-    'beans repository (`make`), which leaves it at `build/beansc`.'
+    'Install Beans from https://github.com/beans-lang/beans/releases/latest, ' +
+    'set `beans.compiler.path`, or put `beansc` on your PATH.'
   );
 }
 

@@ -262,7 +262,8 @@
       "RawPtr",
       "Slice",
       "Atomic",
-      "StoredCallback"
+      "StoredCallback",
+      "CFunctionPtr"
     ],
     "builtinClasses": [
       "Bytes",

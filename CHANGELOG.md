@@ -9,6 +9,24 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.2.2]
+
+### Fixed
+
+- **Zed could miss a normally installed compiler.** Both extensions now check
+  `BEANS_HOME` and the official installer location directly before `PATH`.
+  This works when a GUI editor inherited an old PATH before Beans was
+  installed. Zed also checks `%LOCALAPPDATA%\\Beans` on Windows.
+
+- **The missing-compiler help was stale.** It said no Beans binary had been
+  published. The error and all editor install docs now point to the released
+  compiler and its installer.
+
+- **The editor data drift check understands the current compiler layout.** It
+  now reads the self-hosted semantic-token legend from `lsp_server.b`, checks
+  stage-0 against its own smaller capability list, and highlights the new
+  built-in `CFunctionPtr<T>` type.
+
 ## [0.2.1]
 
 ### Fixed

@@ -11,9 +11,10 @@ language server.
 
 - **Zed 0.205 or newer.** The extension is built against
   `zed_extension_api` 0.7.0.
-- **The `beansc` compiler.** There is no published binary yet — build it from
-  the [beans repository](https://github.com/beans-lang/beans) with `make`,
-  which leaves it at `build/beansc`.
+- **The `beansc` compiler.** Install the latest release with the command in the
+  [Beans install guide](https://github.com/beans-lang/beans/blob/main/docs/INSTALL.md).
+  The extension checks the normal install directory directly, even when Zed
+  started with an old PATH.
 - **Rust with the `wasm32-wasip2` target**, to install as a dev extension. Zed
   compiles the extension itself:
 
@@ -47,8 +48,9 @@ extension resolves the compiler in this order:
 
 1. `lsp.beansc.binary.path`
 2. the `BEANSC` environment variable
-3. `beansc` on the worktree's `PATH`
-4. a source build at `build/beansc`, `beans/build/beansc` or
+3. `BEANS_HOME`, then the normal installer location
+4. `beansc` on the worktree's `PATH`
+5. a source build at `build/beansc`, `beans/build/beansc` or
    `../beans/build/beansc`, relative to the worktree root
 
 Each candidate is verified by running `beansc --version` — an extension has no

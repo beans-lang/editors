@@ -371,7 +371,7 @@
         },
         {
           "name": "support.class.beans",
-          "match": "\\b(?:StoredCallback|RoundingMode|MemoryOrder|CpuFeature|OrderedMap|AtomicInt|Channel|Atomic|Option|RawPtr|Result|Shared|Thread|Arena|Bytes|Error|Mutex|Slice|File|List|MMap|Weak|Box|Dir|Map)\\b"
+          "match": "\\b(?:StoredCallback|CFunctionPtr|RoundingMode|MemoryOrder|CpuFeature|OrderedMap|AtomicInt|Channel|Atomic|Option|RawPtr|Result|Shared|Thread|Arena|Bytes|Error|Mutex|Slice|File|List|MMap|Weak|Box|Dir|Map)\\b"
         },
         {
           "name": "entity.name.type.beans",

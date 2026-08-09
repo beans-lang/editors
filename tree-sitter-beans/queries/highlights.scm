@@ -43,6 +43,7 @@
     "Slice"
     "Atomic"
     "StoredCallback"
+    "CFunctionPtr"
     "Bytes"
     "File"
     "Dir"

@@ -473,6 +473,13 @@ describe('a compiler path containing spaces', { skip }, () => {
     copied = join(dir, 'beansc');
     copyFileSync(resolution.command, copied);
     chmodSync(copied, 0o755);
+    // Release installs use a small `beansc` launcher beside `beansc.real`.
+    // Keep that pair together when the spaced-path fixture copies it.
+    const payload = `${resolution.command}.real`;
+    if (existsSync(payload)) {
+      copyFileSync(payload, `${copied}.real`);
+      chmodSync(`${copied}.real`, 0o755);
+    }
   });
 
   after(() => {

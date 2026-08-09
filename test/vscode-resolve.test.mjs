@@ -84,6 +84,28 @@ describe('resolution order', () => {
     assert.equal(r.source, 'path');
   });
 
+  test('the normal Unix installer location beats PATH', () => {
+    const installed = '/home/jane/.beans/bin/beansc';
+    const r = resolveBeansc({
+      ...base,
+      env: { HOME: '/home/jane', PATH: '/usr/bin' },
+      isExecutableFile: fs(installed, '/usr/bin/beansc'),
+    });
+    assert.equal(r.command, installed);
+    assert.equal(r.source, 'installation');
+  });
+
+  test('BEANS_HOME is checked before the default installer location', () => {
+    const installed = '/opt/my beans/bin/beansc';
+    const r = resolveBeansc({
+      ...base,
+      env: { BEANS_HOME: '/opt/my beans', HOME: '/home/jane' },
+      isExecutableFile: fs(installed, '/home/jane/.beans/bin/beansc'),
+    });
+    assert.equal(r.command, installed);
+    assert.equal(r.source, 'installation');
+  });
+
   test('a compiler at the workspace root beats PATH', () => {
     const r = resolveBeansc({
       ...base,
@@ -248,6 +270,18 @@ describe('path expansion', () => {
 });
 
 describe('windows', () => {
+  test('the normal Windows installer location is checked directly', () => {
+    const installed = join('C:\\Users\\Jane\\AppData\\Local', 'Beans', 'bin', 'beansc.exe');
+    const r = resolveBeansc({
+      ...base,
+      platform: 'win32',
+      env: { LOCALAPPDATA: 'C:\\Users\\Jane\\AppData\\Local' },
+      isExecutableFile: fs(installed),
+    });
+    assert.equal(r.command, installed);
+    assert.equal(r.source, 'installation');
+  });
+
   test('beansc.exe is preferred on win32', () => {
     const r = resolveBeansc({
       ...base,

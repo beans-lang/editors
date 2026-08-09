@@ -16,17 +16,15 @@ Nothing about the language lives in this extension.
 
 ## Requirements
 
-The `beansc` compiler. There is no published binary yet, so build it from the
-[beans repository](https://github.com/beans-lang/beans):
+Install the released `beansc` compiler:
 
 ```bash
-make
+curl -fsSL https://github.com/beans-lang/beans/releases/latest/download/beans-install.sh | sh
 ```
 
-That leaves the compiler at `build/beansc`.
-
-The extension finds it automatically when `beans` and `editors` are checked out
-side by side. Otherwise set the path (see below).
+The [Beans install guide](https://github.com/beans-lang/beans/blob/main/docs/INSTALL.md)
+also has the Windows command and source-build steps. The extension checks the
+normal install directory directly, even when VS Code started with an old PATH.
 
 ## Settings
 
@@ -41,8 +39,9 @@ The compiler is resolved in this order:
 
 1. `beans.compiler.path`
 2. the `BEANSC` environment variable
-3. `beansc` at a workspace root, then on `PATH`
-4. a development build, unless `searchDevelopmentPaths` is off
+3. `BEANS_HOME`, then the normal installer location
+4. `beansc` at a workspace root, then on `PATH`
+5. a development build, unless `searchDevelopmentPaths` is off
 
 A path with spaces in it needs no quoting — the compiler is spawned directly,
 never through a shell.

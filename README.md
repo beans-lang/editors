@@ -19,17 +19,16 @@ breakpoints, frames and variables.
 
 ## Requirements
 
-The `beansc` compiler. No binary has been published yet, so build it from the
-[beans repository](https://github.com/beans-lang/beans):
+Install the released `beansc` compiler:
 
 ```bash
-git clone https://github.com/beans-lang/beans
-cd beans && make
+curl -fsSL https://github.com/beans-lang/beans/releases/latest/download/beans-install.sh | sh
 ```
 
-That produces `build/beansc`. Both extensions find it automatically when
-`beans` and `editors` sit side by side; otherwise point them at it with a
-setting.
+On Windows, use the PowerShell installer documented in the
+[Beans install guide](https://github.com/beans-lang/beans/blob/main/docs/INSTALL.md).
+Both extensions check the normal install directory directly. A source build at
+`build/beansc` is still found when `beans` and `editors` sit side by side.
 
 ## Installing
 
@@ -220,8 +219,9 @@ Both extensions look for the compiler in the same order:
 
 1. an editor setting
 2. the `BEANSC` environment variable
-3. `beansc` at a workspace root, then on `PATH`
-4. a source build at `build/beansc`, `beans/build/beansc` or
+3. `BEANS_HOME`, then the normal installer location
+4. `beansc` at a workspace root, then on `PATH`
+5. a source build at `build/beansc`, `beans/build/beansc` or
    `../beans/build/beansc`
 
 A setting that points at nothing is reported as an error rather than silently
