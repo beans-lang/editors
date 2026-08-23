@@ -2,15 +2,23 @@
 // factory. Both are thin — every decision lives in `src/debug.ts` (pure, and
 // tested) or in `beansc debug-adapter` itself.
 
+import { spawn } from 'node:child_process';
+
 import * as vscode from 'vscode';
 
-import { CompilerNotFoundError } from './beansc';
+import { CompilerNotFoundError, resolveBeansc } from './beansc';
 import {
+  BeansLaunchConfiguration,
   DEBUG_TYPE,
   adapterNotFoundMessage,
   completeConfiguration,
   initialConfiguration,
+  nativeBuildCommand,
+  nativeLaunchConfiguration,
+  NoNativeDebuggerError,
+  noNativeDebuggerMessage,
   NoProgramError,
+  pickNativeAdapter,
   resolveDebugAdapter,
 } from './debug';
 
@@ -42,7 +50,93 @@ function activeBeansFile(): string | undefined {
   return editor.document.uri.fsPath;
 }
 
+/**
+ * Runs `beansc build --debug` and resolves when it succeeds.
+ *
+ * Spawned as an argument vector, never through a shell, so a path with a space
+ * in it cannot be re-split into two arguments.
+ */
+function runNativeBuild(
+  build: { command: string; args: string[]; cwd: string },
+  output: vscode.LogOutputChannel,
+): Promise<void> {
+  return new Promise((settle, reject) => {
+    output.info(`Building for the debugger: ${build.command} ${build.args.join(' ')}`);
+    const child = spawn(build.command, build.args, { cwd: build.cwd });
+    let log = '';
+    child.stdout.on('data', (chunk) => { log += String(chunk); });
+    child.stderr.on('data', (chunk) => { log += String(chunk); });
+    child.on('error', (error) => reject(error));
+    child.on('close', (code) => {
+      if (log !== '') output.info(log.trimEnd());
+      if (code === 0) {
+        settle();
+        return;
+      }
+      reject(new Error(log.trim() === '' ? `beansc build exited ${code}` : log.trim()));
+    });
+  });
+}
+
+/**
+ * Builds the program with `--debug` and starts a native debug session on the
+ * binary.
+ *
+ * The extension stays a thin client here too. It does not debug anything: it
+ * compiles, then hands an ordinary binary with an ordinary DWARF line table to
+ * whichever native debugger the user already has.
+ */
+async function startNativeSession(
+  folder: vscode.WorkspaceFolder | undefined,
+  configuration: BeansLaunchConfiguration,
+  output: vscode.LogOutputChannel,
+): Promise<void> {
+  const settings = readConfiguration();
+  let type: string;
+  let compiler;
+  try {
+    type = pickNativeAdapter(
+      (id) => vscode.extensions.getExtension(id) !== undefined,
+      configuration.adapter,
+    );
+    compiler = resolveBeansc({
+      settingPath: settings.compilerPath,
+      env: process.env,
+      workspaceFolders: workspaceFolderPaths(),
+      searchDevelopmentPaths: settings.searchDevelopmentPaths,
+    });
+  } catch (error) {
+    const message =
+      error instanceof NoNativeDebuggerError
+        ? noNativeDebuggerMessage(error)
+        : error instanceof CompilerNotFoundError
+          ? adapterNotFoundMessage(error)
+          : String(error);
+    output.error(message);
+    void vscode.window.showErrorMessage(message);
+    return;
+  }
+
+  try {
+    await runNativeBuild(nativeBuildCommand(configuration, compiler), output);
+  } catch (error) {
+    const message = `Building ${configuration.program} for the debugger failed: ${
+      error instanceof Error ? error.message : String(error)
+    }`;
+    output.error(message);
+    void vscode.window.showErrorMessage(message);
+    return;
+  }
+
+  await vscode.debug.startDebugging(
+    folder,
+    nativeLaunchConfiguration(configuration, type) as vscode.DebugConfiguration,
+  );
+}
+
 class BeansConfigurationProvider implements vscode.DebugConfigurationProvider {
+  constructor(private readonly output: vscode.LogOutputChannel) {}
+
   provideDebugConfigurations(): vscode.DebugConfiguration[] {
     return [initialConfiguration()];
   }
@@ -56,6 +150,13 @@ class BeansConfigurationProvider implements vscode.DebugConfigurationProvider {
         activeFile: activeBeansFile(),
         workspaceFolder: folder?.uri.fsPath ?? workspaceFolderPaths()[0],
       });
+      if (completed.mode === 'native') {
+        // A native launch is a different debugger's session, so this one is
+        // cancelled and a new one started. Returning a foreign `type` from
+        // here would ask VS Code to re-route a session it has already begun.
+        void startNativeSession(folder, completed, this.output);
+        return undefined;
+      }
       return completed;
     } catch (error) {
       if (error instanceof NoProgramError) {
@@ -130,11 +231,11 @@ export function registerDebugger(
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider(
       DEBUG_TYPE,
-      new BeansConfigurationProvider(),
+      new BeansConfigurationProvider(output),
     ),
     vscode.debug.registerDebugConfigurationProvider(
       DEBUG_TYPE,
-      new BeansConfigurationProvider(),
+      new BeansConfigurationProvider(output),
       vscode.DebugConfigurationProviderTriggerKind.Dynamic,
     ),
     vscode.debug.registerDebugAdapterDescriptorFactory(
