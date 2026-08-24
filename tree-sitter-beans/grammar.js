@@ -64,10 +64,9 @@ module.exports = grammar({
 
   extras: ($) => [/\s/, $.line_comment, $.doc_comment, $.block_comment],
 
-  // `async` and `await` need one token of lookahead to tell a keyword from a
-  // name, which a token regex cannot express. src/scanner.c does what the
-  // compiler's parser does and produces them only in the right shape.
-  externals: ($) => [$.block_comment, $.async_modifier, $.await_operator],
+  // Block comments nest, which a token regex cannot express — src/scanner.c
+  // counts depth the way the compiler's lexer does.
+  externals: ($) => [$.block_comment],
 
   word: ($) => $.identifier,
 
@@ -161,9 +160,6 @@ module.exports = grammar({
     unique_modifier: (_) => 'unique',
     packed_modifier: (_) => 'packed',
     opaque_modifier: (_) => 'opaque',
-    // async_modifier is an external token — see src/scanner.c. It is also
-    // deliberately kept out of `_modifier`: `async` attaches to `fn` and to
-    // `let`, never to `class`, `struct` or a field.
     extern_modifier: ($) => seq('extern', optional(field('abi', $.string_literal))),
     feature_modifier: ($) => seq('feature', field('feature', $.string_literal)),
 
@@ -182,7 +178,6 @@ module.exports = grammar({
     function_declaration: ($) =>
       prec.right(seq(
         repeat($._modifier),
-        optional($.async_modifier),
         'fn',
         field('name', $.identifier),
         optional(field('type_parameters', $.type_parameters)),
@@ -366,21 +361,12 @@ module.exports = grammar({
         $.expression_statement,
       ),
 
-    // Only `pub` and `async`: a local takes no other modifier, and letting
-    // more in here would make `var packed: Bytes` lex `packed` as a keyword.
-    //
-    // `async let x = f()` starts a child task that runs while the rest of the
-    // body continues; the value arrives at the `await`. The compiler accepts
-    // the pair only inside an async body, and only with `let` — never `var`.
+    // Only `pub`: a local takes no other modifier, and letting more in here
+    // would make `var packed: Bytes` lex `packed` as a keyword.
     variable_declaration: ($) =>
       seq(
-        choice(
-          seq(optional($.visibility_modifier), field('kind', choice('let', 'var'))),
-          // `async let` is a statement inside an async body, so it never
-          // carries `pub` — and keeping the two apart is also what stops
-          // `pub async` reading as the start of a function declaration.
-          seq($.async_modifier, field('kind', 'let')),
-        ),
+        optional($.visibility_modifier),
+        field('kind', choice('let', 'var')),
         field('name', $.identifier),
         optional(seq(':', field('type', $._type))),
         optional(seq('=', field('value', $._expression))),
@@ -445,7 +431,6 @@ module.exports = grammar({
         $.binary_expression,
         $.range_expression,
         $.cast_expression,
-        $.await_expression,
         $.call_expression,
         $.field_expression,
         $.index_expression,
@@ -461,17 +446,6 @@ module.exports = grammar({
     super_expression: (_) => 'super',
 
     parenthesized_expression: ($) => seq('(', $._expression, ')'),
-
-    // `await handle`, `await net.await_readable(fd)`.
-    //
-    // Binds tighter than every binary operator and looser than call, field and
-    // index, so `await a + b` is `(await a) + b` and `await f()` awaits the
-    // call's result. The compiler takes a cast-level operand and then rotates
-    // any `?` or `as` back above the await, which lands in the same shape.
-    // The compiler also requires an async body; the scanner settles what it
-    // can see instead — see src/scanner.c.
-    await_expression: ($) =>
-      prec.right(PREC.unary, seq($.await_operator, field('operand', $._expression))),
 
     // `-x`, `!ok`, `~bits`, `move out`, `inout buffer`
     unary_expression: ($) =>

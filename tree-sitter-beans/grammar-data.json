@@ -110,14 +110,13 @@
       "`align` — so any rule that over-matches breaks the compiler's own",
       "highlighting."
     ],
-    "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers', 'Decided'; beans/compiler/bootstrap/parser.cpp — parse_decl(), parse_stmt(), parse_await(), at_package_clause()",
+    "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers', 'Decided'; beans/compiler/bootstrap/parser.cpp — parse_decl(), parse_stmt(), at_package_clause()",
     "modifiers": [
       "unique",
       "packed",
       "align",
       "feature",
-      "opaque",
-      "async"
+      "opaque"
     ],
     "variables": [
       "super"
@@ -130,17 +129,13 @@
     "declarations": [
       "package"
     ],
-    "expressionOperators": [
-      "await"
-    ],
+    "expressionOperators": [],
     "recognizedWhen": {
       "unique": "immediately before `class`",
       "packed": "immediately before `struct` or `union`",
       "opaque": "immediately before `struct`",
       "align": "immediately before `(` — `align(8)`; a field named `align` reads `align:`",
       "feature": "immediately before a string literal — `feature \"aes\" fn`",
-      "async": "immediately before `fn`, or the exact pair `async let` inside an async body",
-      "await": "prefix of an expression, inside an async body only",
       "package": "`package <name>`, before every import and declaration in a file",
       "super": "a receiver inside a method of a class that extends another",
       "size_of": "immediately before `(`",

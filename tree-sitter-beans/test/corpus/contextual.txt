@@ -179,3 +179,53 @@ interface Metric {
             (identifier)
             (primitive_type)))
         (primitive_type)))))
+
+================================================================================
+async and await are ordinary names
+================================================================================
+
+class Job {
+    async: int
+    await: bool
+}
+
+fn run(async: int, await: bool) -> int {
+    var awaited: bool = await
+    async = async + 1
+    return async
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type))
+      (field_declaration
+        (identifier)
+        (primitive_type))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (primitive_type))
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (identifier))
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (identifier)
+          (integer_literal)))
+      (return_statement
+        (identifier)))))

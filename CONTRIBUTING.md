@@ -113,7 +113,7 @@ A **contextual** keyword needs one thing more: an entry in
 `contextualKeywords.recognizedWhen` giving the exact shape the compiler's
 parser tests for. Every highlighting rule for that word is written against that
 line, and `npm run sync` fails without it. The rule matters more than it looks
-— `unique`, `packed`, `align`, `feature`, `opaque`, `async`, `await`, `super`
+— `unique`, `packed`, `align`, `feature`, `opaque`, `super`
 and `package` are all ordinary identifiers outside their one shape, and the
 compiler's own sources use several of them as names. Over-matching breaks
 highlighting on the compiler itself, so when a shape cannot be recognized for

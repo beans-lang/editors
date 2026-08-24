@@ -38,10 +38,6 @@
     "named": true,
     "subtypes": [
       {
-        "type": "await_expression",
-        "named": true
-      },
-      {
         "type": "binary_expression",
         "named": true
       },
@@ -336,32 +332,6 @@
           }
         ]
       }
-    }
-  },
-  {
-    "type": "await_expression",
-    "named": true,
-    "fields": {
-      "operand": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "_expression",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "await_operator",
-          "named": true
-        }
-      ]
     }
   },
   {
@@ -1101,10 +1071,6 @@
       "types": [
         {
           "type": "align_modifier",
-          "named": true
-        },
-        {
-          "type": "async_modifier",
           "named": true
         },
         {
@@ -2425,10 +2391,6 @@
       "required": false,
       "types": [
         {
-          "type": "async_modifier",
-          "named": true
-        },
-        {
           "type": "visibility_modifier",
           "named": true
         }
@@ -2620,14 +2582,6 @@
   {
     "type": "as",
     "named": false
-  },
-  {
-    "type": "async_modifier",
-    "named": true
-  },
-  {
-    "type": "await_operator",
-    "named": true
   },
   {
     "type": "block_comment",

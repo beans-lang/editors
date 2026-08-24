@@ -287,20 +287,6 @@ export function buildTmLanguage(data) {
           },
           { name: 'storage.modifier.beans', match: '\\balign\\b(?=\\s*\\()' },
           { name: 'storage.modifier.beans', match: '\\bfeature\\b(?=\\s*")' },
-          // `async fn` declares one; `async let` starts a child task. Nothing
-          // else makes `async` a keyword, so a field or local keeps the name.
-          {
-            name: 'storage.modifier.async.beans',
-            match: '\\basync\\b(?=\\s+(?:fn|let)\\b)',
-          },
-          // `await` takes an expression. The compiler also requires an async
-          // body, which TextMate cannot see, so the rule asks for the one
-          // thing it can: a space and then the start of an operand. That
-          // leaves `await = 1`, `await.field` and `await(x)` as names.
-          {
-            name: 'keyword.operator.await.beans',
-            match: '\\bawait\\b(?=\\s+[A-Za-z_(])',
-          },
           {
             name: 'support.function.builtin.beans',
             match: `${wordAlternation(ctx.typeOperators)}(?=\\s*\\()`,

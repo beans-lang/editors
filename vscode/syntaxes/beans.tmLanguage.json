@@ -350,14 +350,6 @@
           "match": "\\bfeature\\b(?=\\s*\")"
         },
         {
-          "name": "storage.modifier.async.beans",
-          "match": "\\basync\\b(?=\\s+(?:fn|let)\\b)"
-        },
-        {
-          "name": "keyword.operator.await.beans",
-          "match": "\\bawait\\b(?=\\s+[A-Za-z_(])"
-        },
-        {
           "name": "support.function.builtin.beans",
           "match": "\\b(?:offset_of|align_of|size_of)\\b(?=\\s*\\()"
         }

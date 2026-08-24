@@ -305,28 +305,21 @@ describe('the package clause', () => {
   });
 });
 
-describe('async and await', () => {
-  test('async before fn is a modifier', async () => {
-    await assertScope('async fn watch() -> int {}\n', 'async', 'storage.modifier.async.beans');
-  });
-
-  test('async before let is a modifier', async () => {
-    await assertScope(
-      'async let parked: int = work()\n',
-      'async',
-      'storage.modifier.async.beans',
+describe('async and await are ordinary names', () => {
+  // The words left the language — no position makes either one a keyword.
+  test('async before fn is a plain name', async () => {
+    const scopes = await scopesOf('async fn watch() -> int {}\n', 'async');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('storage.modifier') || s.startsWith('keyword')),
+      `async must stay a name even before fn, got ${scopes}`,
     );
   });
 
-  test('an async function still names the function', async () => {
-    await assertScope('pub async fn fetch() -> int {}\n', 'fetch', 'entity.name.function.beans');
-  });
-
-  test('await before an operand is an operator', async () => {
-    await assertScope(
-      'let woke: bool = await net.await_readable(fd)\n',
-      'await',
-      'keyword.operator.await.beans',
+  test('await before an operand is a plain name', async () => {
+    const scopes = await scopesOf('fn f() {\n    let woke: bool = await\n}\n', 'await');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword')),
+      `await must stay a name, got ${scopes}`,
     );
   });
 
@@ -343,14 +336,6 @@ describe('async and await', () => {
     assert.ok(
       !scopes.some((s) => s.startsWith('keyword.operator.await')),
       `a local called await must stay a name, got ${scopes}`,
-    );
-  });
-
-  test('assigning to a name called await is not an operator', async () => {
-    const scopes = await scopesOf('fn f() {\n    await = true\n}\n', 'await');
-    assert.ok(
-      !scopes.some((s) => s.startsWith('keyword.operator.await')),
-      `await followed by = must stay a name, got ${scopes}`,
     );
   });
 });
