@@ -7,7 +7,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -32,7 +32,13 @@ const {
   adapterNotFoundMessage,
   completeConfiguration,
   initialConfiguration,
+  nativeBinaryPath,
+  nativeBuildCommand,
+  nativeLaunchConfiguration,
+  NoNativeDebuggerError,
+  noNativeDebuggerMessage,
   NoProgramError,
+  pickNativeAdapter,
   resolveDebugAdapter,
 } = require(compiled);
 const { CompilerNotFoundError } = require(resolver);
@@ -177,6 +183,135 @@ describe('launch configurations', () => {
       () => completeConfiguration({}, {}),
       (error) => error instanceof NoProgramError,
     );
+  });
+
+  test('a launch runs under the interpreter unless it asks not to', () => {
+    const done = completeConfiguration(
+      { program: '/work/main.b' },
+      { workspaceFolder: '/work' },
+    );
+    assert.equal(done.mode, 'interpreter');
+  });
+
+  test('an unknown mode is the interpreter, not a broken native launch', () => {
+    const done = completeConfiguration(
+      { program: '/work/main.b', mode: 'wasm' },
+      { workspaceFolder: '/work' },
+    );
+    assert.equal(done.mode, 'interpreter');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Native mode: build with --debug, then hand the binary to a real debugger
+// ---------------------------------------------------------------------------
+
+describe('native launches', () => {
+  const native = (extra = {}) =>
+    completeConfiguration(
+      { program: '/work/app/main.b', mode: 'native', ...extra },
+      { workspaceFolder: '/work' },
+    );
+
+  test('mode: native is carried through', () => {
+    assert.equal(native().mode, 'native');
+  });
+
+  test('the binary lands in build/ beside the source', () => {
+    assert.equal(nativeBinaryPath(native(), 'darwin'), '/work/app/build/main');
+    assert.equal(nativeBinaryPath(native(), 'linux'), '/work/app/build/main');
+  });
+
+  test('Windows gets the extension it needs to run the binary', () => {
+    assert.equal(nativeBinaryPath(native(), 'win32'), '/work/app/build/main.exe');
+  });
+
+  test('an explicit output wins, resolved against the workspace', () => {
+    assert.equal(
+      nativeBinaryPath(native({ output: 'out/app' }), 'linux'),
+      resolve('/work', 'out/app'),
+    );
+  });
+
+  test('the build asks for --debug, which is what writes the line table', () => {
+    const build = nativeBuildCommand(
+      native(),
+      { command: '/usr/local/bin/beansc', args: [] },
+      'linux',
+    );
+    assert.equal(build.command, '/usr/local/bin/beansc');
+    assert.deepEqual(build.args, [
+      'build',
+      '--debug',
+      '/work/app/main.b',
+      '-o',
+      '/work/app/build/main',
+    ]);
+    assert.equal(build.cwd, '/work');
+  });
+
+  test('a path with spaces stays one argument', () => {
+    const config = completeConfiguration(
+      { program: '/Users/a person/my program.b', mode: 'native' },
+      { workspaceFolder: '/Users/a person' },
+    );
+    const build = nativeBuildCommand(config, { command: 'beansc', args: [] }, 'linux');
+    assert.equal(build.args[2], '/Users/a person/my program.b');
+    assert.equal(build.args[4], '/Users/a person/build/my program');
+  });
+
+  test('the best installed debugger is chosen, in order', () => {
+    const installed = (...ids) => (id) => ids.includes(id);
+    assert.equal(
+      pickNativeAdapter(installed('vadimcn.vscode-lldb', 'ms-vscode.cpptools')),
+      'lldb',
+    );
+    assert.equal(pickNativeAdapter(installed('ms-vscode.cpptools')), 'cppdbg');
+    assert.equal(
+      pickNativeAdapter(installed('llvm-vs-code-extensions.lldb-dap')),
+      'lldb-dap',
+    );
+  });
+
+  test('an explicit adapter is taken even when nothing looks installed', () => {
+    assert.equal(pickNativeAdapter(() => false, 'lldb'), 'lldb');
+  });
+
+  test('no debugger installed names the ones that would work', () => {
+    assert.throws(
+      () => pickNativeAdapter(() => false),
+      (error) => {
+        assert.ok(error instanceof NoNativeDebuggerError);
+        const message = noNativeDebuggerMessage(error);
+        assert.match(message, /vadimcn\.vscode-lldb/);
+        assert.match(message, /ms-vscode\.cpptools/);
+        // The way out that needs nothing installed has to be in the message.
+        assert.match(message, /interpreter/);
+        return true;
+      },
+    );
+  });
+
+  test('the handed-over configuration launches the binary, not the source', () => {
+    const config = native({ args: ['--fast'], env: { LEVEL: '3' } });
+    const handed = nativeLaunchConfiguration(config, 'lldb', 'linux');
+    assert.equal(handed.type, 'lldb');
+    assert.equal(handed.request, 'launch');
+    assert.equal(handed.program, '/work/app/build/main');
+    assert.equal(handed.cwd, '/work');
+    assert.deepEqual(handed.args, ['--fast']);
+    assert.deepEqual(handed.env, { LEVEL: '3' });
+  });
+
+  test('cppdbg is spelled the way cppdbg spells it', () => {
+    const config = native({ env: { LEVEL: '3' }, stopOnEntry: true });
+    const mac = nativeLaunchConfiguration(config, 'cppdbg', 'darwin');
+    assert.equal(mac.MIMode, 'lldb');
+    assert.equal(mac.stopAtEntry, true);
+    assert.deepEqual(mac.environment, [{ name: 'LEVEL', value: '3' }]);
+    assert.equal(mac.env, undefined);
+    const linux = nativeLaunchConfiguration(config, 'cppdbg', 'linux');
+    assert.equal(linux.MIMode, 'gdb');
   });
 });
 
@@ -391,6 +526,125 @@ describe('starting the adapter', { skip: compiler === undefined && 'no beansc bu
       assert.equal(stack.body.stackFrames[0].line, 7);
       send({ seq: 6, type: 'request', command: 'disconnect' });
       child.kill();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Native mode, for real: the argv the extension builds produces a binary a
+// debugger can stop inside on a Beans line.
+//
+// This is the whole claim of `"mode": "native"`. The unit tests above check
+// the strings; this checks that the strings describe something that works.
+// ---------------------------------------------------------------------------
+
+function nativeDebugger() {
+  for (const name of ['lldb', 'gdb']) {
+    const probe = spawnSync(name, ['--version']);
+    if (probe.status === 0) return name;
+  }
+  return undefined;
+}
+
+const debuggerName = compiler === undefined ? undefined : nativeDebugger();
+
+/** `runtime/beans_rt.c` beside a development compiler, if that is what this is. */
+const runtimeSource = (() => {
+  if (compiler === undefined) return undefined;
+  const candidate = resolve(dirname(compiler), '..', 'runtime', 'beans_rt.c');
+  return existsSync(candidate) ? candidate : undefined;
+})();
+
+describe('native mode end to end', {
+  skip:
+    (compiler === undefined && 'no beansc built') ||
+    (debuggerName === undefined && 'no lldb or gdb installed'),
+}, () => {
+  test('the built binary stops on the Beans line it was asked for', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'beans-native-'));
+    try {
+      const program = join(dir, 'main.b');
+      writeFileSync(
+        program,
+        [
+          'package main',
+          '',
+          'import std.io',
+          '',
+          'fn total(count: int) -> int {',
+          '    var sum: int = 0',
+          '    for i: int in 0..count {',
+          '        sum = sum + i',
+          '    }',
+          '    return sum',
+          '}',
+          '',
+          'fn main() {',
+          '    io.println("{total(10)}")',
+          '}',
+          '',
+        ].join('\n'),
+      );
+
+      const configuration = completeConfiguration(
+        { program, mode: 'native' },
+        { workspaceFolder: dir },
+      );
+      const build = nativeBuildCommand(configuration, { command: compiler, args: [] });
+      const built = spawnSync(build.command, build.args, {
+        cwd: build.cwd,
+        encoding: 'utf8',
+        // A compiler built from source finds its C runtime relative to the
+        // directory it is run from, and a native build is run from the user's
+        // project. An installed compiler knows where its own runtime is; this
+        // only stands in for that when the tests use a development build.
+        env: { ...process.env, ...(runtimeSource ? { BEANS_RUNTIME: runtimeSource } : {}) },
+      });
+      assert.equal(
+        built.status,
+        0,
+        `beansc build --debug failed: ${built.stdout}${built.stderr}`,
+      );
+
+      // Exactly where the extension says the binary is, and exactly what it
+      // would hand the debugger.
+      const binary = nativeLaunchConfiguration(configuration, 'lldb').program;
+      assert.ok(existsSync(binary), `${binary} was not built`);
+
+      // The breakpoint is set by absolute path, which is what an editor sends
+      // and what the DWARF has to be resolvable against.
+      const session =
+        debuggerName === 'lldb'
+          ? spawnSync(
+              'lldb',
+              [
+                binary, '-b',
+                '-o', `breakpoint set --file ${program} --line 8`,
+                '-o', 'run',
+                '-o', 'bt',
+                '-o', 'frame variable',
+                '-o', 'kill',
+              ],
+              { encoding: 'utf8' },
+            )
+          : spawnSync(
+              'gdb',
+              [
+                '-batch', '-nx',
+                '-ex', `break ${program}:8`,
+                '-ex', 'run',
+                '-ex', 'bt',
+                '-ex', 'info locals',
+                binary,
+              ],
+              { encoding: 'utf8' },
+            );
+      const transcript = `${session.stdout}${session.stderr}`;
+      assert.match(transcript, /main\.b:8/, `no stop on main.b:8:\n${transcript}`);
+      assert.match(transcript, /main\.total/, `frame is not named:\n${transcript}`);
+      assert.match(transcript, /sum = /, `no Beans local:\n${transcript}`);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

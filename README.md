@@ -15,7 +15,9 @@ checked view of your project, so the editors never disagree with it.
 
 VS Code can also debug: `beansc debug-adapter` speaks the Debug Adapter
 Protocol, so F5 runs your program under the Beans interpreter with real
-breakpoints, frames and variables.
+breakpoints, frames and variables. Both editors can debug a compiled binary
+too — `beansc build --debug` writes a Beans line table, so `lldb` and `gdb`
+stop on a Beans line. See [Debugging](#debugging).
 
 ## Requirements
 
@@ -89,7 +91,8 @@ through standard LSP capability negotiation.
 | Rename | ● | ● |
 | Semantic tokens | ● | ○ |
 | Brackets, comment toggling, indentation, folding | ● | ● |
-| Debugging (breakpoints, stepping, variables) | ● | — |
+| Interpreter debugging (breakpoints, stepping, every Beans value) | ● | — |
+| Native debugging (`beansc build --debug`, a real debugger) | ● | ● |
 | File icons for `.b` and `beans.pot` | ● | — |
 
 ● supported ○ opt-in, or as the editor grows support — not available
@@ -166,26 +169,74 @@ still standing. The program's own output arrives in the debug console.
 
 ### Interpreter debugging vs native debugging
 
-These are two different things, and only one of them exists today.
+Two different things, both of which now work. Pick by what you are debugging.
 
-**Interpreter debugging — what ships.** `beansc debug-adapter` runs your
+**Interpreter debugging — the default.** `beansc debug-adapter` runs your
 program with the compiler's tree interpreter. Nothing is compiled, so there is
 no build step and no second toolchain; breakpoints are Beans file and line
-positions, and every value comes from the interpreter's own frames. This is
-the debugger the extension starts, and it is what you want for stepping
-through Beans code.
+positions, and every value comes from the interpreter's own frames. It knows
+every Beans value exactly — a `Map`, a `List`, an object's fields, `self` — and
+it is what you want for stepping through Beans code.
 
-**Native debugging — not available.** `beansc build --debug` produces an
-unoptimized native binary (`-O0`, frame pointers kept, link-time optimization
-off) that carries the platform's debug information for the Beans C runtime.
-That makes a native backtrace, a crash report or a profiler readable at the
-runtime level, and it is the foundation a native debugger needs. It is *not*
-Beans source-level debugging: the LLVM emitter writes no line table for Beans
-statements, so lldb and gdb cannot stop on a Beans line or name a Beans
-function. Use the interpreter debugger for that. `test/native_debug.sh` in the
-compiler repository asserts exactly this boundary, and fails the day the
-emitter starts writing debug metadata — so this paragraph cannot quietly go
-stale.
+**Native debugging — `"mode": "native"`.** `beansc build --debug` writes a
+DWARF line table for your Beans statements, so `lldb` and `gdb` stop on a Beans
+line, name Beans functions in a backtrace, step a statement at a time, and
+print locals. Set `"mode": "native"` and the extension builds with `--debug`
+and hands the binary to whichever native debugger you have installed:
+
+```json
+{
+  "type": "beans",
+  "request": "launch",
+  "name": "Debug Beans Native Build",
+  "mode": "native",
+  "program": "${workspaceFolder}/main.b",
+  "cwd": "${workspaceFolder}"
+}
+```
+
+The binary goes to `build/` beside the source unless you set `output`. One of
+[CodeLLDB][codelldb], [LLDB DAP][lldbdap] or [C/C++][cpptools] has to be
+installed — Beans ships no native adapter of its own, because the binary is an
+ordinary one with an ordinary line table. Set `adapter` to pick a specific one.
+
+[codelldb]: https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb
+[lldbdap]: https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.lldb-dap
+[cpptools]: https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools
+
+Reach for native when the bug is about the compiled program: a crash inside
+the runtime or a C library, threads, timing, or anything that only reproduces
+in a release-shaped build. Scalars, `bool`s and strings print their values;
+lists, maps and objects show their Beans type and address, because walking
+into an object's fields needs type descriptions the emitter does not write
+yet. The interpreter debugger shows all of them, which is the trade.
+
+### Debugging from Zed
+
+Zed's built-in debugger drives the same binaries. It needs no extension change
+— put a `.zed/debug.json` in your project:
+
+```json
+[
+  {
+    "label": "Debug Beans Native Build",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "build": {
+      "command": "beansc",
+      "args": ["build", "--debug", "main.b", "-o", "build/main"],
+      "cwd": "$ZED_WORKTREE_ROOT"
+    },
+    "program": "$ZED_WORKTREE_ROOT/build/main"
+  }
+]
+```
+
+`build` runs before the session starts, so one command builds and debugs.
+Breakpoints set in Zed's gutter resolve against the line table the same way
+they do in VS Code. Zed has no equivalent of the interpreter debugger yet,
+because it has no Beans debug adapter — the native route is the one that works
+there today.
 
 ### Troubleshooting
 

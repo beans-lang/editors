@@ -82,17 +82,35 @@ launch-configuration list, or use a snippet:
 | `args` | `[]` | Arguments passed to the program. |
 | `env` | `{}` | Extra environment variables. |
 | `stopOnEntry` | `false` | Stop before the first statement of `main`. |
+| `mode` | `interpreter` | `interpreter` runs it under `beansc debug-adapter`; `native` builds with `--debug` and debugs the binary. |
+| `output` | `build/` beside the source | Where a native build writes its binary. |
+| `adapter` | best installed | The debug type a native launch hands the binary to. |
 
-The debugger runs your program with the compiler's tree interpreter — no build
-step, no second toolchain. You get breakpoints on Beans lines, a call stack of
-Beans function names, `self`, parameters and locals with real values, paging
-through large lists, maps and objects, watch expressions over variable paths
-(`name`, `name.field`, `name[0]`), step over / into / out, continue, and a stop
-on a runtime panic with the stack still standing.
+By default the debugger runs your program with the compiler's tree interpreter
+— no build step, no second toolchain. You get breakpoints on Beans lines, a
+call stack of Beans function names, `self`, parameters and locals with real
+values, paging through large lists, maps and objects, watch expressions over
+variable paths (`name`, `name.field`, `name[0]`), step over / into / out,
+continue, and a stop on a runtime panic with the stack still standing.
 
-Native (compiled) debugging is a different thing and is not available; see
-[the top-level README](../README.md#interpreter-debugging-vs-native-debugging)
-for exactly what `beansc build --debug` does and does not give you.
+### Debugging the compiled binary
+
+`"mode": "native"` builds with `beansc build --debug` and hands the binary to a
+native debugger. `--debug` writes a DWARF line table for your Beans statements,
+so breakpoints, backtraces, stepping and locals all work on the program that
+actually ships. Install [CodeLLDB][codelldb], [LLDB DAP][lldbdap] or
+[C/C++][cpptools] — this extension ships no native adapter, because the binary
+is an ordinary one and those already read it.
+
+[codelldb]: https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb
+[lldbdap]: https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.lldb-dap
+[cpptools]: https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools
+
+Use it when the bug is about the compiled program — a crash in the runtime or a
+C library, threads, timing. The interpreter debugger stays better at values:
+native shows scalars, `bool`s and strings exactly, and lists, maps and objects
+as a Beans type and an address. See
+[the top-level README](../README.md#interpreter-debugging-vs-native-debugging).
 
 The debugger uses the same compiler resolution as the language server, so both
 halves are always the same build.

@@ -126,6 +126,45 @@ commit everyone can fetch.
 > manifest test accepts only a full 40-character SHA or the literal
 > `UNPINNED`.
 
+## Debugging
+
+Zed's built-in debugger works on Beans programs with no help from this
+extension. `beansc build --debug` writes a DWARF line table for your Beans
+statements, so a breakpoint set in Zed's gutter resolves, the call stack names
+Beans functions, stepping moves a statement at a time, and locals appear in the
+variables pane.
+
+Put this in `.zed/debug.json`:
+
+```json
+[
+  {
+    "label": "Debug Beans Native Build",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "build": {
+      "command": "beansc",
+      "args": ["build", "--debug", "main.b", "-o", "build/main"],
+      "cwd": "$ZED_WORKTREE_ROOT"
+    },
+    "program": "$ZED_WORKTREE_ROOT/build/main"
+  }
+]
+```
+
+`build` runs before the session starts, so one command compiles and debugs.
+`--debug` is the part that matters: it runs no optimizer, keeps frame pointers,
+and is the only mode that writes the line table.
+
+Scalars, `bool`s and strings print their values. Lists, maps and objects show
+their Beans type and address, because walking into an object's fields needs
+type descriptions the compiler does not write yet.
+
+There is no interpreter debugger in Zed. `beansc debug-adapter` speaks DAP and
+would work, but this extension contributes no debug adapter — Zed reaches
+adapters through its own registry, and adding one is a separate piece of work
+from language support. The VS Code extension has it today.
+
 ## Troubleshooting
 
 ### "Failed to install dev extension: failed to compile Rust extension"

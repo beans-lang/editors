@@ -222,6 +222,29 @@
                 "type": "boolean",
                 "description": "Stop before the first statement of `main`.",
                 "default": false
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "interpreter",
+                  "native"
+                ],
+                "enumDescriptions": [
+                  "Run under `beansc debug-adapter`. Knows every Beans value; needs nothing else installed.",
+                  "Build with `beansc build --debug` and debug the binary. Needs a native debugger extension (CodeLLDB, LLDB DAP or C/C++)."
+                ],
+                "description": "Which machinery runs the program.",
+                "default": "interpreter"
+              },
+              "output": {
+                "type": "string",
+                "description": "Where a native build writes its binary. Defaults to `build/` beside the source.",
+                "default": ""
+              },
+              "adapter": {
+                "type": "string",
+                "description": "The debug type a native launch hands the binary to. Empty picks the best installed one.",
+                "default": ""
               }
             }
           }
@@ -265,6 +288,21 @@
               "args": [],
               "env": {},
               "stopOnEntry": true
+            }
+          },
+          {
+            "label": "Beans: Debug the native build",
+            "description": "Build with `beansc build --debug` and debug the binary in a native debugger.",
+            "body": {
+              "type": "beans",
+              "request": "launch",
+              "name": "${1:Debug Beans Native Build}",
+              "mode": "native",
+              "program": "^\"\\${workspaceFolder}/${2:main.b}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "args": [],
+              "env": {},
+              "stopOnEntry": false
             }
           }
         ]

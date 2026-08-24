@@ -9,6 +9,26 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+### Added
+
+- **Debug the compiled binary.** `beansc build --debug` now writes a line
+  table for Beans statements, so a native debugger can stop inside the
+  program that ships. The VS Code launch configuration takes
+  `"mode": "native"`: the extension builds with `--debug` and hands the
+  binary to CodeLLDB, LLDB DAP or the C/C++ extension — whichever is
+  installed, or whichever `adapter` names. `output` says where the binary
+  goes; it defaults to `build/` beside the source. `"mode": "interpreter"`
+  is the default and is unchanged, and still the debugger that knows every
+  Beans value.
+
+  This extension ships no native debug adapter and does not need one: a
+  Beans binary is an ordinary one with an ordinary DWARF line table, and
+  the debuggers people already have read it.
+
+- **Zed debugs the same binaries**, with no extension change — Zed's
+  built-in debugger takes a `build` step, so one `.zed/debug.json` entry
+  compiles and debugs. See [`zed/README.md`](zed/README.md#debugging).
+
 ## [0.2.2]
 
 ### Fixed
