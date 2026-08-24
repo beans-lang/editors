@@ -9,6 +9,8 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.3.0]
+
 ### Added
 
 - **Debug the compiled binary.** `beansc build --debug` now writes a line
