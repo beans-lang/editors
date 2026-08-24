@@ -27,7 +27,7 @@ repository = "https://github.com/beans-lang/editors"
 # See editors/zed/README.md.
 [grammars.beans]
 repository = "https://github.com/beans-lang/editors"
-rev = "74a3c19916923c7e499b2ff3223f93bb0c29501f"
+rev = "2db5e2241ef47bfb3a93e29171f0d9535e8ecf7e"
 path = "tree-sitter-beans"
 
 [language_servers.beansc]
