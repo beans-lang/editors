@@ -33,6 +33,8 @@
     "Map"
     "OrderedMap"
     "Thread"
+    "Brew"
+    "TaskGroup"
     "Mutex"
     "Channel"
     "Box"
@@ -49,6 +51,7 @@
     "Dir"
     "MMap"
     "Error"
+    "Gate"
     "Option"
     "Result"
     "AtomicInt"
@@ -149,14 +152,12 @@
 (unique_modifier) @keyword.modifier
 (packed_modifier) @keyword.modifier
 (opaque_modifier) @keyword.modifier
-(async_modifier) @keyword.modifier
 
 (align_modifier (align_keyword) @keyword.modifier)
 
-; await is a prefix operator on an expression, so it takes the same capture as
-; the other operator-like keywords, as and new, rather than a coroutine capture
-; that no theme is required to know.
-(await_operator) @keyword.operator
+; The brew that starts a child fiber, anchored inside its own node so the
+; TaskGroup method group.brew(...) stays an ordinary call.
+(brew_keyword) @keyword
 
 ; Operators and punctuation --------------------------------------------------
 [

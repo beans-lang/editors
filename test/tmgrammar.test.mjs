@@ -273,6 +273,51 @@ describe('contextual keywords', () => {
       `some must not be a keyword, got ${scopes}`,
     );
   });
+
+  test('brew before a call is a keyword', async () => {
+    await assertScope('    brew warm(ctx)\n', 'brew', 'keyword.control.beans');
+  });
+
+  test('brew keeps the keyword scope in a let initializer', async () => {
+    await assertScope(
+      '    let h: Brew<int> = brew work(21)\n',
+      'brew',
+      'keyword.control.beans',
+    );
+  });
+
+  test('the TaskGroup method group.brew(...) is not a keyword', async () => {
+    const scopes = await scopesOf('    group.brew(double(2))\n', 'brew');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword')),
+      `a method called brew must stay a name, got ${scopes}`,
+    );
+  });
+
+  test('a local named brew is not a keyword', async () => {
+    // `var brew: int = 5` then `brew = brew + 1` is code the compiler
+    // accepts, so neither use may paint as a keyword.
+    const declared = await scopesOf('    var brew: int = 5\n', 'brew');
+    assert.ok(
+      !declared.some((s) => s.startsWith('keyword')),
+      `a local called brew must stay a name, got ${declared}`,
+    );
+    const assigned = await scopesOf('    brew = brew + 1\n', 'brew');
+    assert.ok(
+      !assigned.some((s) => s.startsWith('keyword')),
+      `assigning to brew must stay a name, got ${assigned}`,
+    );
+  });
+
+  test('Brew, TaskGroup and Gate are builtin types', async () => {
+    await assertScope('let h: Brew<int> = brew work(1)\n', 'Brew', 'support.class.beans');
+    await assertScope(
+      'let g: TaskGroup<int> = new TaskGroup<int>()\n',
+      'TaskGroup',
+      'support.class.beans',
+    );
+    await assertScope('let gate: Gate = new Gate()\n', 'Gate', 'support.class.beans');
+  });
 });
 
 describe('the package clause', () => {
@@ -305,28 +350,21 @@ describe('the package clause', () => {
   });
 });
 
-describe('async and await', () => {
-  test('async before fn is a modifier', async () => {
-    await assertScope('async fn watch() -> int {}\n', 'async', 'storage.modifier.async.beans');
-  });
-
-  test('async before let is a modifier', async () => {
-    await assertScope(
-      'async let parked: int = work()\n',
-      'async',
-      'storage.modifier.async.beans',
+describe('async and await are ordinary names', () => {
+  // The words left the language — no position makes either one a keyword.
+  test('async before fn is a plain name', async () => {
+    const scopes = await scopesOf('async fn watch() -> int {}\n', 'async');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('storage.modifier') || s.startsWith('keyword')),
+      `async must stay a name even before fn, got ${scopes}`,
     );
   });
 
-  test('an async function still names the function', async () => {
-    await assertScope('pub async fn fetch() -> int {}\n', 'fetch', 'entity.name.function.beans');
-  });
-
-  test('await before an operand is an operator', async () => {
-    await assertScope(
-      'let woke: bool = await net.await_readable(fd)\n',
-      'await',
-      'keyword.operator.await.beans',
+  test('await before an operand is a plain name', async () => {
+    const scopes = await scopesOf('fn f() {\n    let woke: bool = await\n}\n', 'await');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword')),
+      `await must stay a name, got ${scopes}`,
     );
   });
 
@@ -343,14 +381,6 @@ describe('async and await', () => {
     assert.ok(
       !scopes.some((s) => s.startsWith('keyword.operator.await')),
       `a local called await must stay a name, got ${scopes}`,
-    );
-  });
-
-  test('assigning to a name called await is not an operator', async () => {
-    const scopes = await scopesOf('fn f() {\n    await = true\n}\n', 'await');
-    assert.ok(
-      !scopes.some((s) => s.startsWith('keyword.operator.await')),
-      `await followed by = must stay a name, got ${scopes}`,
     );
   });
 });

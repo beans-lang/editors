@@ -350,12 +350,8 @@
           "match": "\\bfeature\\b(?=\\s*\")"
         },
         {
-          "name": "storage.modifier.async.beans",
-          "match": "\\basync\\b(?=\\s+(?:fn|let)\\b)"
-        },
-        {
-          "name": "keyword.operator.await.beans",
-          "match": "\\bawait\\b(?=\\s+[A-Za-z_(])"
+          "name": "keyword.control.beans",
+          "match": "(?<!\\.)\\bbrew\\b(?=\\s+[A-Za-z_])"
         },
         {
           "name": "support.function.builtin.beans",
@@ -371,7 +367,7 @@
         },
         {
           "name": "support.class.beans",
-          "match": "\\b(?:StoredCallback|CFunctionPtr|RoundingMode|MemoryOrder|CpuFeature|OrderedMap|AtomicInt|Channel|Atomic|Option|RawPtr|Result|Shared|Thread|Arena|Bytes|Error|Mutex|Slice|File|List|MMap|Weak|Box|Dir|Map)\\b"
+          "match": "\\b(?:StoredCallback|CFunctionPtr|RoundingMode|MemoryOrder|CpuFeature|OrderedMap|AtomicInt|TaskGroup|Channel|Atomic|Option|RawPtr|Result|Shared|Thread|Arena|Bytes|Error|Mutex|Slice|Brew|File|Gate|List|MMap|Weak|Box|Dir|Map)\\b"
         },
         {
           "name": "entity.name.type.beans",

@@ -110,14 +110,13 @@
       "`align` — so any rule that over-matches breaks the compiler's own",
       "highlighting."
     ],
-    "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers', 'Decided'; beans/compiler/bootstrap/parser.cpp — parse_decl(), parse_stmt(), parse_await(), at_package_clause()",
+    "source": "beans/spec/SYNTAX.md — 'Keywords and modifiers', 'Decided'; beans/compiler/bootstrap/parser.cpp — parse_decl(), parse_stmt(), at_package_clause()",
     "modifiers": [
       "unique",
       "packed",
       "align",
       "feature",
-      "opaque",
-      "async"
+      "opaque"
     ],
     "variables": [
       "super"
@@ -131,16 +130,15 @@
       "package"
     ],
     "expressionOperators": [
-      "await"
+      "brew"
     ],
     "recognizedWhen": {
+      "brew": "immediately before a call, as a statement or a `let`/`var` initializer — `brew warm(ctx)`; the `TaskGroup` method reads `group.brew(...)` and stays a method name",
       "unique": "immediately before `class`",
       "packed": "immediately before `struct` or `union`",
       "opaque": "immediately before `struct`",
       "align": "immediately before `(` — `align(8)`; a field named `align` reads `align:`",
       "feature": "immediately before a string literal — `feature \"aes\" fn`",
-      "async": "immediately before `fn`, or the exact pair `async let` inside an async body",
-      "await": "prefix of an expression, inside an async body only",
       "package": "`package <name>`, before every import and declaration in a file",
       "super": "a receiver inside a method of a class that extends another",
       "size_of": "immediately before `(`",
@@ -228,6 +226,8 @@
       "Map",
       "OrderedMap",
       "Thread",
+      "Brew",
+      "TaskGroup",
       "Mutex",
       "Channel",
       "Box",
@@ -245,7 +245,8 @@
       "File",
       "Dir",
       "MMap",
-      "Error"
+      "Error",
+      "Gate"
     ],
     "builtinEnums": [
       "Option",

@@ -38,10 +38,6 @@
     "named": true,
     "subtypes": [
       {
-        "type": "await_expression",
-        "named": true
-      },
-      {
         "type": "binary_expression",
         "named": true
       },
@@ -153,6 +149,10 @@
       },
       {
         "type": "break_statement",
+        "named": true
+      },
+      {
+        "type": "brew_statement",
         "named": true
       },
       {
@@ -339,32 +339,6 @@
     }
   },
   {
-    "type": "await_expression",
-    "named": true,
-    "fields": {
-      "operand": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "_expression",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "await_operator",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "binary_expression",
     "named": true,
     "fields": {
@@ -487,6 +461,47 @@
     "type": "boolean_literal",
     "named": true,
     "fields": {}
+  },
+  {
+    "type": "brew_expression",
+    "named": true,
+    "fields": {
+      "call": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "call_expression",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "brew_keyword",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "brew_statement",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "brew_expression",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "call_expression",
@@ -1101,10 +1116,6 @@
       "types": [
         {
           "type": "align_modifier",
-          "named": true
-        },
-        {
-          "type": "async_modifier",
           "named": true
         },
         {
@@ -2416,6 +2427,10 @@
           {
             "type": "_expression",
             "named": true
+          },
+          {
+            "type": "brew_expression",
+            "named": true
           }
         ]
       }
@@ -2424,10 +2439,6 @@
       "multiple": false,
       "required": false,
       "types": [
-        {
-          "type": "async_modifier",
-          "named": true
-        },
         {
           "type": "visibility_modifier",
           "named": true
@@ -2622,20 +2633,16 @@
     "named": false
   },
   {
-    "type": "async_modifier",
-    "named": true
-  },
-  {
-    "type": "await_operator",
-    "named": true
-  },
-  {
     "type": "block_comment",
     "named": true,
     "extra": true
   },
   {
     "type": "break_statement",
+    "named": true
+  },
+  {
+    "type": "brew_keyword",
     "named": true
   },
   {

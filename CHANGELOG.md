@@ -9,6 +9,30 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+### Added
+
+- **`brew` and the fiber handle types.** Beans grew green threads: `brew f(x)`
+  starts a child fiber, and `Brew<T>`, `TaskGroup<T>` and `Gate` join the
+  builtin types. `brew` highlights as a keyword only where the compiler reads
+  one — directly before a call, as a statement or a `let`/`var` initializer.
+  Everywhere else it stays the name it is, so the `TaskGroup` method
+  `group.brew(...)`, a field or parameter called `brew`, and `brew = brew + 1`
+  all keep their ordinary colours. The Tree-sitter grammar gained
+  `brew_statement` and `brew_expression`, and because the decision needs a look
+  past the word, the external scanner emits the keyword token — a regular lexer
+  would have taken `brew` at the start of every statement.
+
+### Removed
+
+- **`async` and `await` are no longer keywords.** Beans removed async/await
+  from the language (they are ordinary identifiers as of runtime ABI 10, ahead
+  of the fiber-based concurrency redesign), and every grammar here follows:
+  the TextMate rules for `async`/`await` are gone, the Tree-sitter grammar
+  dropped `async_modifier`, `await_operator` and `await_expression` (the
+  external scanner now handles only nested block comments), and the Zed
+  highlight and outline queries no longer mention them. A file that uses
+  either word as a field, parameter or local highlights it as the name it is.
+
 ## [0.3.0]
 
 ### Added
