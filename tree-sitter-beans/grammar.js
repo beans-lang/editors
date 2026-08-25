@@ -66,7 +66,7 @@ module.exports = grammar({
 
   // Block comments nest, which a token regex cannot express — src/scanner.c
   // counts depth the way the compiler's lexer does.
-  externals: ($) => [$.block_comment],
+  externals: ($) => [$.block_comment, $.brew_keyword],
 
   word: ($) => $.identifier,
 
@@ -88,6 +88,10 @@ module.exports = grammar({
     // `pub align(8) x: int` is a field; `pub align(8) struct ...` is a nested
     // declaration. The name or keyword after the modifiers decides.
     [$._modifier, $.field_declaration],
+    // After `brew f(a)`, a following `(` could extend the call to `f(a)(b)`
+    // or start something new. GLR takes the longer call, which is the one
+    // the compiler brews.
+    [$._expression, $.brew_expression],
   ],
 
   rules: {
@@ -358,6 +362,7 @@ module.exports = grammar({
         $.defer_statement,
         $.for_statement,
         $.unsafe_block,
+        $.brew_statement,
         $.expression_statement,
       ),
 
@@ -369,8 +374,23 @@ module.exports = grammar({
         field('kind', choice('let', 'var')),
         field('name', $.identifier),
         optional(seq(':', field('type', $._type))),
-        optional(seq('=', field('value', $._expression))),
+        optional(seq('=', field('value', choice($._expression, $.brew_expression)))),
       ),
+
+    // `brew f(args)` starts the call on a child fiber of the current scope.
+    // Contextual, and deliberately not part of `_expression`: the compiler
+    // takes it only as a statement or a `let`/`var` initializer — "a Brew
+    // handle is scope-bound, so it cannot ride inside a larger expression".
+    // The keyword comes from the external scanner, which emits it only when
+    // a call really follows, so `group.brew(...)`, `var brew: int = 5` and
+    // `brew = brew + 1` all stay ordinary names, exactly as the compiler
+    // reads them.
+    brew_statement: ($) => $.brew_expression,
+
+    // prec.right so a postfix chain finishes before the reduce: `brew f(a)(b)`
+    // brews the whole call, not `f(a)` with a stray call after it.
+    brew_expression: ($) =>
+      prec.right(seq($.brew_keyword, field('call', $.call_expression))),
 
     assignment_statement: ($) =>
       seq(

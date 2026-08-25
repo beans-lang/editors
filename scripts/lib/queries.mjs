@@ -135,6 +135,10 @@ ${scmKeywords(kw.import, '@keyword.import')}
 ${scmKeywords(ctx.modifiers.filter((m) => m !== 'align'), '@keyword.modifier')}
 (align_modifier (align_keyword) @keyword.modifier)
 
+; The brew that starts a child fiber, anchored inside its own node so the
+; TaskGroup method group.brew(...) stays an ordinary call.
+(brew_keyword) @keyword
+
 ; Operators and punctuation --------------------------------------------------
 ${scmList(operators, '@operator')}
 [

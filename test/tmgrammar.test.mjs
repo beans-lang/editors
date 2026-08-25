@@ -273,6 +273,51 @@ describe('contextual keywords', () => {
       `some must not be a keyword, got ${scopes}`,
     );
   });
+
+  test('brew before a call is a keyword', async () => {
+    await assertScope('    brew warm(ctx)\n', 'brew', 'keyword.control.beans');
+  });
+
+  test('brew keeps the keyword scope in a let initializer', async () => {
+    await assertScope(
+      '    let h: Brew<int> = brew work(21)\n',
+      'brew',
+      'keyword.control.beans',
+    );
+  });
+
+  test('the TaskGroup method group.brew(...) is not a keyword', async () => {
+    const scopes = await scopesOf('    group.brew(double(2))\n', 'brew');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword')),
+      `a method called brew must stay a name, got ${scopes}`,
+    );
+  });
+
+  test('a local named brew is not a keyword', async () => {
+    // `var brew: int = 5` then `brew = brew + 1` is code the compiler
+    // accepts, so neither use may paint as a keyword.
+    const declared = await scopesOf('    var brew: int = 5\n', 'brew');
+    assert.ok(
+      !declared.some((s) => s.startsWith('keyword')),
+      `a local called brew must stay a name, got ${declared}`,
+    );
+    const assigned = await scopesOf('    brew = brew + 1\n', 'brew');
+    assert.ok(
+      !assigned.some((s) => s.startsWith('keyword')),
+      `assigning to brew must stay a name, got ${assigned}`,
+    );
+  });
+
+  test('Brew, TaskGroup and Gate are builtin types', async () => {
+    await assertScope('let h: Brew<int> = brew work(1)\n', 'Brew', 'support.class.beans');
+    await assertScope(
+      'let g: TaskGroup<int> = new TaskGroup<int>()\n',
+      'TaskGroup',
+      'support.class.beans',
+    );
+    await assertScope('let gate: Gate = new Gate()\n', 'Gate', 'support.class.beans');
+  });
 });
 
 describe('the package clause', () => {

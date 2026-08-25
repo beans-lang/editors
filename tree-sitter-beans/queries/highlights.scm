@@ -33,6 +33,8 @@
     "Map"
     "OrderedMap"
     "Thread"
+    "Brew"
+    "TaskGroup"
     "Mutex"
     "Channel"
     "Box"
@@ -49,6 +51,7 @@
     "Dir"
     "MMap"
     "Error"
+    "Gate"
     "Option"
     "Result"
     "AtomicInt"
@@ -151,6 +154,10 @@
 (opaque_modifier) @keyword.modifier
 
 (align_modifier (align_keyword) @keyword.modifier)
+
+; The brew that starts a child fiber, anchored inside its own node so the
+; TaskGroup method group.brew(...) stays an ordinary call.
+(brew_keyword) @keyword
 
 ; Operators and punctuation --------------------------------------------------
 [

@@ -287,6 +287,13 @@ export function buildTmLanguage(data) {
           },
           { name: 'storage.modifier.beans', match: '\\balign\\b(?=\\s*\\()' },
           { name: 'storage.modifier.beans', match: '\\bfeature\\b(?=\\s*")' },
+          // `brew f(args)` starts a child fiber. The lookbehind keeps the
+          // TaskGroup method `group.brew(...)` an ordinary call, and the
+          // lookahead demands the call that must follow.
+          {
+            name: 'keyword.control.beans',
+            match: '(?<!\\.)\\bbrew\\b(?=\\s+[A-Za-z_])',
+          },
           {
             name: 'support.function.builtin.beans',
             match: `${wordAlternation(ctx.typeOperators)}(?=\\s*\\()`,

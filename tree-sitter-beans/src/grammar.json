@@ -1582,6 +1582,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "brew_statement"
+        },
+        {
+          "type": "SYMBOL",
           "name": "expression_statement"
         }
       ]
@@ -1665,8 +1669,17 @@
                   "type": "FIELD",
                   "name": "value",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "_expression"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "_expression"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "brew_expression"
+                      }
+                    ]
                   }
                 }
               ]
@@ -1677,6 +1690,31 @@
           ]
         }
       ]
+    },
+    "brew_statement": {
+      "type": "SYMBOL",
+      "name": "brew_expression"
+    },
+    "brew_expression": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "brew_keyword"
+          },
+          {
+            "type": "FIELD",
+            "name": "call",
+            "content": {
+              "type": "SYMBOL",
+              "name": "call_expression"
+            }
+          }
+        ]
+      }
     },
     "assignment_statement": {
       "type": "SEQ",
@@ -4008,6 +4046,10 @@
     [
       "_modifier",
       "field_declaration"
+    ],
+    [
+      "_expression",
+      "brew_expression"
     ]
   ],
   "precedences": [],
@@ -4015,6 +4057,10 @@
     {
       "type": "SYMBOL",
       "name": "block_comment"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "brew_keyword"
     }
   ],
   "inline": [],

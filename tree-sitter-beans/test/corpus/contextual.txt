@@ -229,3 +229,128 @@ fn run(async: int, await: bool) -> int {
           (integer_literal)))
       (return_statement
         (identifier)))))
+
+================================================================================
+brew starts a call on a child fiber
+================================================================================
+
+fn main() {
+    brew side(9)
+    let handle: Brew<int> = brew work(21)
+    let group: TaskGroup<int> = new TaskGroup<int>()
+    group.brew(double(2))
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (brew_statement
+        (brew_expression
+          (brew_keyword)
+          (call_expression
+            (identifier)
+            (argument_list
+              (integer_literal)))))
+      (variable_declaration
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (primitive_type)))
+        (brew_expression
+          (brew_keyword)
+          (call_expression
+            (identifier)
+            (argument_list
+              (integer_literal)))))
+      (variable_declaration
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (primitive_type)))
+        (new_expression
+          (generic_type
+            (type_identifier)
+            (type_arguments
+              (primitive_type)))
+          (argument_list)))
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (identifier))
+          (argument_list
+            (call_expression
+              (identifier)
+              (argument_list
+                (integer_literal)))))))))
+
+================================================================================
+brew is an ordinary name everywhere else
+================================================================================
+
+class Cup {
+    brew: int
+}
+
+fn steep(brew: int) -> int {
+    return brew + 1
+}
+
+fn main() {
+    var brew: int = 5
+    brew = brew + 1
+    let cup: Cup = new Cup()
+    cup.brew = brew
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (declaration_body
+      (field_declaration
+        (identifier)
+        (primitive_type))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (block
+      (return_statement
+        (binary_expression
+          (identifier)
+          (integer_literal)))))
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (variable_declaration
+        (identifier)
+        (primitive_type)
+        (integer_literal))
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (identifier)
+          (integer_literal)))
+      (variable_declaration
+        (identifier)
+        (type_identifier)
+        (new_expression
+          (type_identifier)
+          (argument_list)))
+      (assignment_statement
+        (field_expression
+          (identifier)
+          (identifier))
+        (identifier)))))

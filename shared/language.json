@@ -198,8 +198,11 @@
     "declarations": [
       "package"
     ],
-    "expressionOperators": [],
+    "expressionOperators": [
+      "brew"
+    ],
     "recognizedWhen": {
+      "brew": "immediately before a call, as a statement or a `let`/`var` initializer — `brew warm(ctx)`; the `TaskGroup` method reads `group.brew(...)` and stays a method name",
       "unique": "immediately before `class`",
       "packed": "immediately before `struct` or `union`",
       "opaque": "immediately before `struct`",
@@ -250,6 +253,8 @@
       "Map",
       "OrderedMap",
       "Thread",
+      "Brew",
+      "TaskGroup",
       "Mutex",
       "Channel",
       "Box",
@@ -267,7 +272,8 @@
       "File",
       "Dir",
       "MMap",
-      "Error"
+      "Error",
+      "Gate"
     ],
     "builtinEnums": [
       "Option",
