@@ -1,6 +1,6 @@
 {
   "name": "beans-editors",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Editor integrations for the Beans programming language",
   "license": "Apache-2.0",
@@ -29,6 +29,7 @@
     "test:manifests": "node --test test/manifests.test.mjs",
     "test:bundle": "node --test test/bundle.test.mjs",
     "test:grammar": "node --test test/tmgrammar.test.mjs",
+    "test:bx": "node --test test/bx.test.mjs",
     "test:resolve": "node --test test/vscode-resolve.test.mjs",
     "test:debug": "node --test test/vscode-debug.test.mjs",
     "test:lsp": "node --test test/lsp-smoke.test.mjs",

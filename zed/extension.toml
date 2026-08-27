@@ -1,7 +1,7 @@
 id = "beans"
 name = "Beans"
 description = "Beans language support — Tree-sitter highlighting plus language intelligence from the compiler's built-in language server (beansc lsp)."
-version = "0.4.0"
+version = "0.5.0"
 schema_version = 1
 authors = ["The Beans authors"]
 repository = "https://github.com/beans-lang/editors"

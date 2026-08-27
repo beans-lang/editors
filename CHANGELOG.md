@@ -9,6 +9,79 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.5.0]
+
+### Added
+
+- **`.bx` markup files.** A `.bx` file is a Beans file with tag expressions in
+  it — crema's `bx` package compiles one to a `.b` — and it now opens as its
+  own language rather than as plain text. The grammar is a thin layer over the
+  Beans one: tags, attributes, `on:` handlers, embedded `{…}` expressions and
+  quoted values are painted, and everything that is not a tag falls through to
+  `source.beans`, so the two can never drift apart. Which `<` opens a tag
+  mirrors `bx/compile.b` exactly — a name has to start after it and nothing
+  that ends a name may sit before it — so `List<string>`, `xs[i]<n`, `f()<n`
+  and a `<div>` inside a string or a comment all keep their meaning.
+
+- **Markup completion, hover and colour swatches for `.bx`.** Typing `<` offers
+  the tags; inside a tag you get the 128 flags, the 48 ramp families and their
+  steps, the counted families, the string and expression attributes and the 17
+  listeners, each with the call it becomes; `bg="` offers all 391 colour names
+  with a swatch, and a colour already written gets one inline plus a picker.
+  Hover names what an attribute compiles to and says when a step is not in the
+  table it names.
+
+  None of that vocabulary is written down here. It is printed by
+  `community-libs/crema/tests/_bx_editor_data.b` straight out of bx's own
+  tables into `shared/bx.json`, because a second copy of 391 colour names would
+  be wrong the first time crema moved one.
+
+- **The contextual keywords the grammar had never heard of.** `priv`,
+  `abstract`, `partial`, `singleton`, `weak`, `send`, `thread_local`,
+  `annotation`, `type_of` and `from` all reached the language without reaching
+  the grammar. Each is now painted only in the shape the parser tests for, so a
+  field called `priv`, a local called `weak` and a variable called `from` all
+  stay ordinary names.
+
+- **Named imports.** `import {a, b as c} from pkg.path` painted every part of
+  itself as unhighlighted text, because the import rule only knew
+  `import path [as alias]`. The names, their aliases, the `from` and the path
+  are now all painted, on one line or broken over several.
+
+- **Annotations.** `@name` and `@pkg.name`, with or without arguments.
+
+- **`priv` reaches a theme.** The language server now sends `declaration`,
+  `static` and `private` semantic-token modifiers, the extension declares
+  `private` — LSP has no such modifier of its own — and private members render
+  italic by default so a restricted member is visible as one without a theme
+  having to know about Beans.
+
+### Changed
+
+- **New file icons**, from one drawing per icon in `icons/source/`, repainted
+  per theme by the generator instead of living in four hand-edited copies of
+  the same art.
+
+### Fixed
+
+- **The drift check had been skipping, not passing.** `scripts/sync-beans.mjs`
+  read `beans/compiler/bootstrap/*.cpp`, and when the compiler self-hosted and
+  those files went away it did not fail — it printed `skip: no beans checkout`
+  on every run. That is how ten keywords reached the language without reaching
+  the grammar. It now reads `beans/src/*.b`, a missing source is a finding
+  rather than a skip, and it checks the direction that was missing: a word the
+  parser treats specially that `shared/language.json` has never heard of is
+  reported by name.
+
+- **The corpus check had been skipping too**, for the same reason and with the
+  same effect. `scripts/parse-corpus.mjs` parses ~60k lines of real Beans —
+  the examples, the stdlib and the compiler itself — with the Tree-sitter
+  grammar, and it looked for `beans/compiler/`. It now reads `beans/src/`, and
+  what it measures is that the grammar parses 518 of 654 files. The 136 it
+  cannot are listed in `test/corpus-known-failures.txt` and the check is a
+  ratchet: a file already on the list is a known gap, a file that is not is a
+  regression. `npm test` runs every step now — nothing skips.
+
 ## [0.4.0]
 
 ### Added

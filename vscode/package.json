@@ -1,8 +1,8 @@
 {
   "name": "beans-vscode",
   "displayName": "Beans",
-  "description": "Beans language support — syntax highlighting and language intelligence from the compiler's built-in language server.",
-  "version": "0.4.0",
+  "description": "Beans language support \u2014 syntax highlighting and language intelligence from the compiler's built-in language server.",
+  "version": "0.5.0",
   "publisher": "beans-lang",
   "license": "Apache-2.0",
   "private": true,
@@ -60,6 +60,22 @@
         }
       },
       {
+        "id": "beans-bx",
+        "aliases": [
+          "Beans Markup",
+          "beans-bx",
+          "bx"
+        ],
+        "extensions": [
+          ".bx"
+        ],
+        "configuration": "./bx-language-configuration.json",
+        "icon": {
+          "light": "./icons/beans-b-light.svg",
+          "dark": "./icons/beans-b-dark.svg"
+        }
+      },
+      {
         "id": "beans-manifest",
         "aliases": [
           "Beans Manifest"
@@ -81,6 +97,14 @@
         "path": "./syntaxes/beans.tmLanguage.json"
       },
       {
+        "language": "beans-bx",
+        "scopeName": "source.beans.bx",
+        "path": "./syntaxes/beans-bx.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.beans": "beans"
+        }
+      },
+      {
         "language": "beans-manifest",
         "scopeName": "source.beans-manifest",
         "path": "./syntaxes/beans-manifest.tmLanguage.json"
@@ -92,7 +116,7 @@
         "beans.compiler.path": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Absolute or workspace-relative path to the `beansc` executable. Supports `~` and `${workspaceFolder}`. When empty, the extension checks the `BEANSC` environment variable, then the workspace root and `PATH`, then a local development build. A path containing spaces needs no quoting — the compiler is spawned directly, never through a shell.",
+          "markdownDescription": "Absolute or workspace-relative path to the `beansc` executable. Supports `~` and `${workspaceFolder}`. When empty, the extension checks the `BEANSC` environment variable, then the workspace root and `PATH`, then a local development build. A path containing spaces needs no quoting \u2014 the compiler is spawned directly, never through a shell.",
           "scope": "machine-overridable"
         },
         "beans.compiler.searchDevelopmentPaths": {
@@ -138,6 +162,19 @@
         "editor.tabSize": 4,
         "files.trimTrailingWhitespace": true,
         "files.insertFinalNewline": true
+      },
+      "editor.semanticTokenColorCustomizations": {
+        "rules": {
+          "*.private:beans": {
+            "italic": true
+          }
+        }
+      },
+      "[beans-bx]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true
       }
     },
     "semanticTokenScopes": [
@@ -170,6 +207,18 @@
           ],
           "keyword": [
             "keyword.beans"
+          ],
+          "property.private": [
+            "variable.other.property.private.beans",
+            "variable.other.property.beans"
+          ],
+          "method.private": [
+            "entity.name.function.member.private.beans",
+            "entity.name.function.member.beans"
+          ],
+          "function.private": [
+            "entity.name.function.private.beans",
+            "entity.name.function.beans"
           ]
         }
       }
@@ -306,6 +355,12 @@
             }
           }
         ]
+      }
+    ],
+    "semanticTokenModifiers": [
+      {
+        "id": "private",
+        "description": "A member marked `priv`: visible only inside the type that declares it."
       }
     ]
   },
