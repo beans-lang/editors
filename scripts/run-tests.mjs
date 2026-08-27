@@ -21,6 +21,13 @@ const steps = [
     args: ['scripts/generate.mjs', '--check'],
   },
   {
+    // Straight after the generate check, and before anything slow: a stale
+    // parser is the same class of problem and the same cheap fix.
+    name: 'the committed parser matches grammar.js',
+    command: 'node',
+    args: ['scripts/check-parser.mjs'],
+  },
+  {
     name: 'typescript compiles',
     command: 'npm',
     args: ['--workspace', 'beans-vscode', 'run', '--silent', 'build'],

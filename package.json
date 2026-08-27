@@ -19,6 +19,7 @@
   "scripts": {
     "generate": "node scripts/generate.mjs",
     "generate:check": "node scripts/generate.mjs --check",
+    "check:parser": "node scripts/check-parser.mjs",
     "sync": "node scripts/sync-beans.mjs",
     "grammar": "npm run generate && npm --workspace tree-sitter-beans run build",
     "build": "npm run generate:check && npm --workspace beans-vscode run build",

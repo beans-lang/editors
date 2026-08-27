@@ -1495,6 +1495,10 @@
           {
             "type": "size_of",
             "named": false
+          },
+          {
+            "type": "type_of",
+            "named": false
           }
         ]
       },
@@ -2822,6 +2826,10 @@
   {
     "type": "type_identifier",
     "named": true
+  },
+  {
+    "type": "type_of",
+    "named": false
   },
   {
     "type": "union",

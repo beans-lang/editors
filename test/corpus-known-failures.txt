@@ -105,7 +105,6 @@ test/cases/private_method_modifiers_bad.b
 test/cases/private_methods_bad.b
 test/cases/private_methods_ok.b
 test/cases/reflect_annotations.b
-test/cases/reflect_type.b
 test/cases/runtime_hooks_bad.b
 test/cases/runtime_hooks_ok.b
 test/cases/runtime_hooks_threads.b
