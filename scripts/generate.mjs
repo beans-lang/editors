@@ -10,8 +10,18 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 
-import { loadLanguageData, editorsRoot, GENERATED_BANNER } from './lib/language-data.mjs';
-import { buildTmLanguage, buildManifestTmLanguage } from './lib/tmlanguage.mjs';
+import {
+  loadLanguageData,
+  loadBxData,
+  editorsRoot,
+  GENERATED_BANNER,
+} from './lib/language-data.mjs';
+import {
+  buildTmLanguage,
+  buildManifestTmLanguage,
+  buildBxTmLanguage,
+} from './lib/tmlanguage.mjs';
+import { buildIcons } from './lib/icons.mjs';
 import {
   buildHighlights,
   buildBrackets,
@@ -25,6 +35,81 @@ import {
 const check = process.argv.includes('--check');
 
 const data = loadLanguageData();
+const bx = loadBxData();
+
+/**
+ * `shared/bx.json` as a TypeScript module.
+ *
+ * The extension is bundled from `src/`, and `tsconfig.json` sets `rootDir` to
+ * it, so a JSON file two directories up cannot be imported. Emitting it as a
+ * source file keeps the data typed, bundled and generated all at once.
+ */
+function buildBxData(b) {
+  // The `$`-prefixed provenance keys belong in shared/bx.json, where a reader
+  // needs them; the module says the same thing in its header.
+  const { tags, flags, ramps, stepTables, counts, texts, values, events, colors } = b;
+  const json = JSON.stringify(
+    { tags, flags, ramps, stepTables, counts, texts, values, events, colors },
+    null,
+    2,
+  );
+  return `// ${GENERATED_BANNER}
+//
+// Printed by community-libs/crema/tests/_bx_editor_data.b, out of bx's own
+// tables in crema. Regenerate with:
+//
+//     beansc run tests/_bx_editor_data.b > editors/shared/bx.json
+//     npm run generate
+
+export interface BxTag {
+  name: string;
+  call: string;
+  styled: boolean;
+  parent: boolean;
+  note: string;
+}
+
+export interface BxRamp {
+  family: string;
+  table: string;
+}
+
+export interface BxText {
+  attr: string;
+  kind: string;
+}
+
+export interface BxValue {
+  attr: string;
+  takes: string;
+}
+
+export interface BxEvent {
+  event: string;
+  payload: string;
+  signature: string;
+}
+
+export interface BxColor {
+  name: string;
+  hex: string;
+}
+
+export interface BxVocabulary {
+  tags: BxTag[];
+  flags: string[];
+  ramps: BxRamp[];
+  stepTables: Record<string, string[]>;
+  counts: string[];
+  texts: BxText[];
+  values: BxValue[];
+  events: BxEvent[];
+  colors: BxColor[];
+}
+
+export const BX: BxVocabulary = ${json};
+`;
+}
 
 /** The keyword/operator/type lists grammar.js consumes at `tree-sitter generate` time. */
 function buildGrammarData(d) {
@@ -55,6 +140,11 @@ const outputs = [
     content: `${JSON.stringify(buildManifestTmLanguage(data), null, 2)}\n`,
   },
   {
+    path: 'vscode/syntaxes/beans-bx.tmLanguage.json',
+    content: `${JSON.stringify(buildBxTmLanguage(data), null, 2)}\n`,
+  },
+  { path: 'vscode/src/bx-data.ts', content: buildBxData(bx) },
+  {
     path: 'tree-sitter-beans/grammar-data.json',
     content: `${JSON.stringify(buildGrammarData(data), null, 2)}\n`,
   },
@@ -69,6 +159,10 @@ const outputs = [
     content: `${JSON.stringify(buildSemanticTokenRules(data), null, 2)}\n`,
   },
 ];
+
+// The file icons: one drawing per icon in icons/source/, repainted per theme
+// and copied into vscode/ so the extension can be packaged from there.
+outputs.push(...buildIcons());
 
 // The tree-sitter package ships the same queries so `tree-sitter highlight`
 // and other consumers see what Zed sees.

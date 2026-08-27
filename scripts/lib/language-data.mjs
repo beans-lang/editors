@@ -13,7 +13,20 @@ export const editorsRoot = resolve(here, '..', '..');
 
 export const sharedPath = join(editorsRoot, 'shared', 'language.json');
 
+/**
+ * The `bx` markup vocabulary — tags, attributes, ramp steps, events and
+ * colour names. Unlike language.json this one is *not* hand-maintained: it is
+ * printed by `community-libs/crema/tests/_bx_editor_data.b` straight out of
+ * bx's own tables, because a second copy of 391 colour names typed out here
+ * would be wrong the first time crema moved one.
+ */
+export const bxPath = join(editorsRoot, 'shared', 'bx.json');
+
 export function loadLanguageData(path = sharedPath) {
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+export function loadBxData(path = bxPath) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 

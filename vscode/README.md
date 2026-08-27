@@ -14,6 +14,34 @@ Debugging works the same way: the extension contributes a `beans` debug type
 that starts `beansc debug-adapter`, which speaks the Debug Adapter Protocol.
 Nothing about the language lives in this extension.
 
+## `.bx` markup
+
+A `.bx` file is a Beans file with tag expressions in it, which
+[crema](https://github.com/beans-lang/crema)'s `bx` package compiles to a `.b`.
+It opens as its own language, `beans-bx`, and gets:
+
+- **Highlighting.** The grammar is a thin layer over the Beans one — tags,
+  attributes, `on:` handlers, embedded `{…}` expressions and quoted values are
+  painted, and everything else falls through to `source.beans`. Which `<` opens
+  a tag mirrors `bx/compile.b` exactly, so `List<string>`, `xs[i]<n`, `f()<n`
+  and a `<div>` inside a string or a comment all keep their meaning.
+- **Completion.** Tags after `<`; inside a tag, every flag, ramp family and its
+  steps, counted family, string and expression attribute and listener, each
+  with the call it becomes; every colour name after `bg="`, with a swatch.
+- **Hover** naming what an attribute compiles to, and **colour swatches** with
+  a picker for the colours a tag names.
+
+That vocabulary is generated out of crema's own tables, not written down here:
+`community-libs/crema/tests/_bx_editor_data.b` prints it into
+`editors/shared/bx.json`.
+
+Markup is the one thing the extension answers itself, and only because the
+compiler cannot: tags are crema's, not the language's, so `beansc` has never
+heard of them. The Beans *around* a tag gets no language server — `beansc lsp`
+is not offered `.bx` documents, because it would report a syntax error on every
+tag. Hover and go-to-definition inside a `.bx` file would need bx reachable
+from the compiler, or a `bx` CLI to compile a buffer and map positions back.
+
 ## Requirements
 
 Install the released `beansc` compiler:
@@ -169,9 +197,10 @@ dependency is present in `vscode/node_modules`, then package without that flag.
 
 ## Scope
 
-The extension registers no language feature providers of its own, and it
-implements no part of the debugger beyond finding and starting `beansc
-debug-adapter`. A missing feature is missing from the compiler, and that is
+For `.b`, the extension registers no language feature providers of its own, and
+it implements no part of the debugger beyond finding and starting `beansc
+debug-adapter`. The `.bx` providers above are the single exception, and they
+answer only about markup. A missing feature is missing from the compiler, and that is
 where it should be added; a second engine in the editor would drift from it.
 See the feature matrix in the [top-level README](../README.md).
 
@@ -186,15 +215,21 @@ vscode/
   package.json                          extension manifest
   language-configuration.json           brackets, comments, indentation, word rules
   manifest-language-configuration.json  the same for beans.pot
+  bx-language-configuration.json        the same for .bx, plus tags
   syntaxes/                             generated TextMate grammars
-  icons/                                light/dark icons for .b and beans.pot
+  icons/                                generated light/dark icons
   src/
     extension.ts                        activation, commands, config changes
     client.ts                           the language client lifecycle
     beansc.ts                           compiler resolution (no vscode imports)
     debug.ts                            launch configurations (no vscode imports)
     debugger.ts                         the debug provider and adapter factory
+    bx.ts                               the .bx providers
+    bx-model.ts                         the bx tables and the cursor scanner
+                                        (no vscode imports)
+    bx-data.ts                          generated: crema's bx vocabulary
 ```
 
-`syntaxes/` is generated from `editors/shared/language.json` — edit that and run
-`npm run generate`.
+`syntaxes/`, `icons/`, `src/bx-data.ts` and the Zed queries are generated —
+from `editors/shared/language.json`, `editors/shared/bx.json` and
+`editors/icons/source/`. Edit those and run `npm run generate`.

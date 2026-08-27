@@ -4,7 +4,7 @@
 //
 // This is the grammar's real test. Hand-written corpus cases prove the shapes
 // we thought of; this proves the shapes the language actually uses — 99 files
-// and ~60k lines of examples, stdlib and the self-hosted compiler.
+// and ~60k lines of examples, stdlib and the self-hosted compiler in src/.
 //
 //   node scripts/parse-corpus.mjs [--beans <path>] [--quiet]
 //
@@ -12,7 +12,7 @@
 // still runs in a clone that only has this repository.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
 import { editorsRoot } from './lib/language-data.mjs';
@@ -29,7 +29,7 @@ const beansRoot = resolve(
   argValue('--beans') ?? process.env.BEANS_ROOT ?? join(editorsRoot, '..', 'beans'),
 );
 
-if (!existsSync(join(beansRoot, 'compiler'))) {
+if (!existsSync(join(beansRoot, 'src'))) {
   console.log(`skip: no beans checkout at ${beansRoot}`);
   process.exit(0);
 }
@@ -44,7 +44,7 @@ if (!existsSync(treeSitter)) {
 
 // Where real Beans lives: hand-written examples, the standard library, and the
 // self-hosted compiler.
-const sources = ['examples', 'stdlib', 'compiler/beans', 'test'];
+const sources = ['examples', 'stdlib', 'src', 'test'];
 
 // beans/test/cases holds source the compiler rejects. Most of those failures
 // are *semantic* (type errors, move errors, non-exhaustive matches) and the
@@ -124,11 +124,65 @@ if (!quiet) {
 
 let failed = false;
 
-if (brokeValid.length > 0) {
+// The grammar does not parse the whole corpus yet — the Tree-sitter half is
+// behind the language by several features, which is what `test/corpus-known-
+// failures.txt` records. This check is therefore a ratchet rather than a pass:
+// a file already on the list is a known gap, and a file that is *not* on it is
+// a regression the change under test just caused.
+//
+// It used to read `beans/compiler/`, which the self-hosted compiler replaced
+// with `beans/src/`, so it skipped instead of measuring anything at all. The
+// baseline is the honest reading of what it measures now; shrink it by fixing
+// grammar.js, and run with --update to record the smaller number.
+const baselinePath = join(editorsRoot, 'test', 'corpus-known-failures.txt');
+const update = process.argv.includes('--update');
+const known = existsSync(baselinePath)
+  ? new Set(
+      readFileSync(baselinePath, 'utf8')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l !== '' && !l.startsWith('#')),
+    )
+  : new Set();
+
+const brokeNames = brokeValid.map(show).sort();
+if (update) {
+  writeFileSync(
+    baselinePath,
+    '# Files the Tree-sitter grammar cannot parse yet. A ratchet, not a\n' +
+      '# target: nothing may be added without a reason, and the list should\n' +
+      '# only ever get shorter. Regenerate with:\n' +
+      '#\n' +
+      '#     node scripts/parse-corpus.mjs --update\n' +
+      brokeNames.map((n) => `${n}\n`).join(''),
+  );
+  console.log(`parse-corpus: recorded ${brokeNames.length} known failure(s)`);
+}
+
+const regressions = brokeNames.filter((n) => !known.has(n));
+const repaired = [...known].filter((n) => !brokeNames.includes(n));
+
+if (!quiet && brokeNames.length > 0) {
+  console.log(
+    `corpus: ${brokeNames.length} known parse failure(s) — the Tree-sitter ` +
+      'grammar is behind the language; see test/corpus-known-failures.txt',
+  );
+}
+
+if (regressions.length > 0) {
   failed = true;
-  console.error(`\n${brokeValid.length} valid file(s) failed to parse:`);
-  for (const f of brokeValid.slice(0, 40)) console.error(`  ${show(f)}`);
-  if (brokeValid.length > 40) console.error(`  ... ${brokeValid.length - 40} more`);
+  console.error(`\n${regressions.length} file(s) newly failed to parse:`);
+  for (const f of regressions.slice(0, 40)) console.error(`  ${f}`);
+  if (regressions.length > 40) console.error(`  ... ${regressions.length - 40} more`);
+  console.error('\nFix the grammar, or record them with --update and say why.');
+}
+
+if (repaired.length > 0 && !update) {
+  failed = true;
+  console.error(
+    `\n${repaired.length} file(s) on the known-failure list now parse cleanly.`,
+  );
+  console.error('Run `node scripts/parse-corpus.mjs --update` to shrink the list.');
 }
 
 if (parsedInvalid.length > 0) {
@@ -140,6 +194,7 @@ if (parsedInvalid.length > 0) {
 if (failed) process.exit(1);
 
 console.log(
-  `parse-corpus: ${valid.length} file(s) parsed clean, ` +
+  `parse-corpus: ${valid.length - brokeNames.length}/${valid.length} file(s) ` +
+    `parsed clean, ${brokeNames.length} known failure(s), ` +
     `${invalid.length} invalid file(s) correctly rejected (${beansRoot})`,
 );

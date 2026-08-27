@@ -385,6 +385,125 @@ describe('async and await are ordinary names', () => {
   });
 });
 
+describe('the contextual keywords the grammar used to miss', () => {
+  test('priv before a member is a modifier', async () => {
+    await assertScope('    priv seen: int\n', 'priv', 'storage.modifier.beans');
+    await assertScope('    priv fn step() {}\n', 'priv', 'storage.modifier.beans');
+    await assertScope('    priv static count: int = 0\n', 'priv', 'storage.modifier.beans');
+  });
+
+  test('a field named priv stays a name', async () => {
+    // The parser allows it: `priv` is only a modifier when a name follows.
+    for (const source of ['    priv: int\n', '    self.priv = 1\n']) {
+      const scopes = await scopesOf(source, 'priv');
+      assert.ok(
+        !scopes.includes('storage.modifier.beans'),
+        `a field called priv must stay a name in ${JSON.stringify(source)}, got ${scopes}`,
+      );
+    }
+  });
+
+  test('abstract, partial and singleton are class modifiers', async () => {
+    for (const word of ['abstract', 'partial', 'singleton']) {
+      await assertScope(`pub ${word} class Shape {}\n`, word, 'storage.modifier.beans');
+    }
+    // In a run, in any order, each one is still a modifier.
+    await assertScope('abstract partial class Shape {}\n', 'abstract', 'storage.modifier.beans');
+    await assertScope('abstract partial class Shape {}\n', 'partial', 'storage.modifier.beans');
+  });
+
+  test('abstract is also a method modifier', async () => {
+    await assertScope('    abstract fn draw() -> string\n', 'abstract', 'storage.modifier.beans');
+  });
+
+  test('a name called partial with no class after it stays a name', async () => {
+    const scopes = await scopesOf('    let partial: int = 1\n', 'partial');
+    assert.ok(
+      !scopes.includes('storage.modifier.beans'),
+      `partial as a local must stay a name, got ${scopes}`,
+    );
+  });
+
+  test('weak, send and thread_local are modifiers in their own shapes', async () => {
+    await assertScope('    weak next: Option<Node>\n', 'weak', 'storage.modifier.beans');
+    await assertScope('    send fn run() {}\n', 'send', 'storage.modifier.beans');
+    await assertScope('thread_local var depth: int = 0\n', 'thread_local', 'storage.modifier.beans');
+    // ...and ordinary names everywhere else.
+    const scopes = await scopesOf('    let weak: int = 1\n', 'weak');
+    assert.ok(
+      !scopes.includes('storage.modifier.beans'),
+      `a local called weak must stay a name, got ${scopes}`,
+    );
+  });
+
+  test('annotation declares one; type_of is a builtin', async () => {
+    await assertScope('pub annotation Route {}\n', 'annotation', 'storage.type.beans');
+    await assertScope('let t: Type = type_of(Frame)\n', 'type_of', 'support.function.builtin.beans');
+  });
+});
+
+describe('annotations', () => {
+  test('@name paints the sigil and the name', async () => {
+    await assertScope('@inline\nfn fast() {}\n', '@', 'punctuation.definition.annotation.beans');
+    await assertScope('@inline\nfn fast() {}\n', 'inline', 'entity.name.function.annotation.beans');
+  });
+
+  test('a qualified annotation keeps both halves', async () => {
+    await assertScope(
+      '@web.route(path: "/health")\nfn health() {}\n',
+      'web.route',
+      'entity.name.function.annotation.beans',
+    );
+  });
+
+  test('the annotated declaration is still a declaration', async () => {
+    await assertScope('@inline\nfn fast() {}\n', 'fast', 'entity.name.function.beans');
+  });
+});
+
+describe('imports', () => {
+  test('the module form still names the path and its alias', async () => {
+    const source = 'import crema.flex as f\n';
+    await assertScope(source, 'import', 'keyword.control.import.beans');
+    await assertScope(source, 'crema.flex', 'entity.name.namespace.beans');
+    await assertScope(source, 'as', 'keyword.control.import.beans');
+    await assertScope(source, 'f', 'entity.name.namespace.alias.beans');
+  });
+
+  test('a named import paints its names, its aliases and its from', async () => {
+    const source = 'import {measure, Space as S} from crema.flex\n';
+    await assertScope(source, 'import', 'keyword.control.import.beans');
+    await assertScope(source, 'measure', 'variable.other.readwrite.alias.beans');
+    await assertScope(source, 'Space', 'variable.other.readwrite.alias.beans');
+    await assertScope(source, 'S', 'variable.other.readwrite.alias.beans');
+    await assertScope(source, 'from', 'keyword.control.import.beans');
+    await assertScope(source, 'crema.flex', 'entity.name.namespace.beans');
+  });
+
+  test('the `as` inside a list is the import keyword, not the cast', async () => {
+    const scopes = await scopesOf('import {Space as S} from crema.flex\n', 'as');
+    assert.ok(
+      scopes.includes('keyword.control.import.beans'),
+      `the alias keyword should read as an import, got ${scopes}`,
+    );
+  });
+
+  test('a list broken over lines is still an import', async () => {
+    const source = 'import {\n    measure,\n    Space as S,\n} from crema.flex\n';
+    await assertScope(source, 'measure', 'variable.other.readwrite.alias.beans');
+    await assertScope(source, 'from', 'keyword.control.import.beans');
+    await assertScope(source, 'crema.flex', 'entity.name.namespace.beans');
+  });
+
+  test('from is only a keyword in an import', async () => {
+    const scopes = await scopesOf('    let from: int = 1\n', 'from');
+    assert.ok(
+      !scopes.some((s) => s.startsWith('keyword')),
+      `a local called from must stay a name, got ${scopes}`,
+    );
+  });
+});
+
 describe('the beans.pot manifest grammar', () => {
   const scope = 'source.beans-manifest';
 

@@ -154,6 +154,15 @@
 (opaque_modifier) @keyword.modifier
 
 (align_modifier (align_keyword) @keyword.modifier)
+; Not yet in tree-sitter-beans/grammar.js, so not yet queryable here:
+;   priv
+;   abstract
+;   partial
+;   singleton
+;   weak
+;   send
+;   thread_local
+
 
 ; The brew that starts a child fiber, anchored inside its own node so the
 ; TaskGroup method group.brew(...) stays an ordinary call.

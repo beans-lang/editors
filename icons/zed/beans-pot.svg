@@ -1,16 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Beans module manifest">
-  <defs>
-    <path id="bean" d="M4 .5C6.7.5 8 3.1 8 6.1C8 9.1 6.4 11.5 4 11.5C1.6 11.5 0 9.2 0 6.2C0 3.2 1.4.7 4 .5Z"/>
-    <path id="seam" d="M4.5 1.2C2.7 4 5.3 6.3 3.5 10.8"/>
-  </defs>
-  <g fill="#B86F3C" stroke="#6D3927" stroke-width=".5" stroke-linejoin="round">
-    <use href="#bean" transform="translate(12 2)"/>
-    <use href="#bean" transform="translate(5.5 16) rotate(-20 4 6)"/>
-    <use href="#bean" transform="translate(18.5 16) rotate(20 4 6)"/>
-  </g>
-  <g fill="none" stroke="#241411" stroke-width="1.25" stroke-linecap="round">
-    <use href="#seam" transform="translate(12 2)"/>
-    <use href="#seam" transform="translate(5.5 16) rotate(-20 4 6)"/>
-    <use href="#seam" transform="translate(18.5 16) rotate(20 4 6)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Beans manifest">
+  <!-- 
+    Package Manager: Pot
+    Theme: Cohesive with Beans language
+  -->
+  
+  <!-- Pot Handle -->
+  <path d="M17 9 h 2 c 1.65 0 3 1.35 3 3 v 3 c 0 1.65 -1.35 3 -3 3 h -2.5" 
+        fill="none" 
+        stroke="#6D4C41" 
+        stroke-width="2" 
+        stroke-linecap="round" />
+        
+  <!-- Pot Spout -->
+  <path d="M 7 7 L 3.5 9.5 C 2.5 10.2 2.5 11 3 11.5 L 6.5 11 Z" 
+        fill="#8D6E63" />
+        
+  <!-- Main Pot Body -->
+  <path d="M7 6 h 10 l 1.5 13.5 C 18.7 21 17.5 22 16 22 H 8 C 6.5 22 5.3 21 5.5 19.5 Z" 
+        fill="#8D6E63" />
+        
+  <!-- Lid and Knob -->
+  <path d="M6.5 6 L 17.5 6 C 18 6 18.5 5.5 18.5 5 V 4.5 C 18.5 4 18 3.5 17.5 3.5 H 6.5 C 6 3.5 5.5 4 5.5 4.5 V 5 C 5.5 5.5 6 6 6.5 6 Z" 
+        fill="#6D4C41" />
+  <path d="M10.5 3.5 V 2.5 C 10.5 2 11 1.5 11.5 1.5 H 12.5 C 13 1.5 13.5 2 13.5 2.5 V 3.5 Z" 
+        fill="#6D4C41" />
+        
+  <!-- Mini Beans Logo Stamp -->
+  <g transform="translate(12, 14.5) rotate(40)">
+    <ellipse cx="0" cy="0" rx="3" ry="4.5" fill="#EFEBE9" />
+    <path d="M 0 -3.5 C -1.5 -1, 1.5 1, 0 3.5" 
+          stroke="#8D6E63" 
+          stroke-width="0.75" 
+          fill="none" 
+          stroke-linecap="round" />
   </g>
 </svg>

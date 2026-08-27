@@ -1,0 +1,135 @@
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": [
+      "/*",
+      "*/"
+    ]
+  },
+  "brackets": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "<",
+      ">"
+    ]
+  ],
+  "autoClosingPairs": [
+    {
+      "open": "{",
+      "close": "}"
+    },
+    {
+      "open": "[",
+      "close": "]"
+    },
+    {
+      "open": "(",
+      "close": ")"
+    },
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "/*",
+      "close": " */",
+      "notIn": [
+        "string"
+      ]
+    }
+  ],
+  "autoCloseBefore": ";:.,=}])> \n\t",
+  "surroundingPairs": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "\"",
+      "\""
+    ],
+    [
+      "<",
+      ">"
+    ]
+  ],
+  "colorizedBracketPairs": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ]
+  ],
+  "folding": {
+    "markers": {
+      "start": "^\\s*//\\s*#?region\\b",
+      "end": "^\\s*//\\s*#?endregion\\b"
+    }
+  },
+  "wordPattern": "[A-Za-z_][A-Za-z0-9_]*(?:[-/][A-Za-z0-9_./]+)*",
+  "indentationRules": {
+    "increaseIndentPattern": "^((?!//).)*(\\{[^}\"'`]*|\\([^)\"'`]*|\\[[^\\]\"'`]*|<[A-Za-z_][A-Za-z0-9_]*(?![^>]*/>)[^>]*>)$",
+    "decreaseIndentPattern": "^\\s*(?:[)\\]}]|</[A-Za-z_][A-Za-z0-9_]*\\s*>)"
+  },
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*///.*$",
+      "action": {
+        "indent": "none",
+        "appendText": "/// "
+      }
+    },
+    {
+      "beforeText": "^\\s*/\\*\\*(?!/)([^\\*]|\\*(?!/))*$",
+      "afterText": "^\\s*\\*/$",
+      "action": {
+        "indent": "indentOutdent",
+        "appendText": " * "
+      }
+    },
+    {
+      "$comment": "Enter between an open and a close tag indents and puts the close tag on its own line.",
+      "beforeText": "<([A-Za-z_][A-Za-z0-9_]*)(?:\\s[^>]*)?>$",
+      "afterText": "^</[A-Za-z_][A-Za-z0-9_]*>",
+      "action": {
+        "indent": "indentOutdent"
+      }
+    },
+    {
+      "beforeText": "<([A-Za-z_][A-Za-z0-9_]*)(?:\\s[^>]*)?>$",
+      "action": {
+        "indent": "indent"
+      }
+    }
+  ]
+}

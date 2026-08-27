@@ -9,6 +9,56 @@ import { GENERATED_BANNER, wordAlternation, builtinTypeNames } from './language-
 const IDENT = '[A-Za-z_][A-Za-z0-9_]*';
 
 /**
+ * The lookaround each contextual modifier is painted behind, one per word in
+ * `contextualKeywords.modifiers`. These are the shapes `recognizedWhen` in
+ * shared/language.json describes, written as regex: outside them the word is
+ * an ordinary name and painting it would be a bug — the compiler's own
+ * sources have a field called `align` and a local called `package`.
+ *
+ * Missing an entry is a build error rather than a silently unhighlighted
+ * keyword, so adding a word to language.json forces a decision here.
+ */
+const CLASS_MODIFIERS = ['unique', 'abstract', 'partial', 'singleton'];
+const CLASS_MODIFIER_RUN =
+  `(?=(?:\\s+(?:${CLASS_MODIFIERS.join('|')}))*\\s+class\\b)`;
+
+const CONTEXTUAL_MODIFIERS = {
+  // A run of class modifiers, in any order, ending at the `class` they modify.
+  unique: CLASS_MODIFIER_RUN,
+  partial: CLASS_MODIFIER_RUN,
+  singleton: CLASS_MODIFIER_RUN,
+  // `abstract` is the one that is also a method modifier.
+  abstract: `(?:${CLASS_MODIFIER_RUN}|(?=\\s+fn\\b))`,
+  packed: '(?=\\s+(?:struct|union))',
+  opaque: '(?=\\s+struct\\b)',
+  align: '(?=\\s*\\()',
+  feature: '(?=\\s*")',
+  // `priv value: T` restricts a member; a field *named* priv reads `priv:` or
+  // `priv = `, and the lookahead demands a name after the space instead.
+  priv: '(?=\\s+[A-Za-z_])',
+  // `weak next: Option<Node>` — a non-owning field, and only a field.
+  weak: `(?=\\s+${IDENT}\\s*:)`,
+  send: '(?=\\s+fn\\b)',
+  thread_local: '(?=\\s+(?:let|var)\\b)',
+};
+
+/** Contextual modifier rules, in the order language.json lists them. */
+function contextualModifierRules(ctx) {
+  return ctx.modifiers.map((word) => {
+    const shape = CONTEXTUAL_MODIFIERS[word];
+    if (shape === undefined) {
+      throw new Error(
+        `contextualKeywords.modifiers has "${word}" but tmlanguage.mjs has no ` +
+          'shape for it. Add one to CONTEXTUAL_MODIFIERS, matching its ' +
+          '`recognizedWhen` entry in shared/language.json.',
+      );
+    }
+    // `.priv` and `.weak` are member reads, never modifiers.
+    return { name: 'storage.modifier.beans', match: `(?<!\\.)\\b${word}\\b${shape}` };
+  });
+}
+
+/**
  * The `beans.pot` manifest is its own small format — `module`/`kind`/`require`/
  * `link` lines, not Beans code. It gets its own grammar bound to the exact
  * filename, because `.pot` belongs to gettext and must not be claimed.
@@ -79,6 +129,7 @@ export function buildTmLanguage(data) {
           { include: '#string' },
           { include: '#number' },
           { include: '#package' },
+          { include: '#annotation' },
           { include: '#declaration' },
           { include: '#import' },
           { include: '#keyword' },
@@ -247,15 +298,84 @@ export function buildTmLanguage(data) {
         ],
       },
 
+      // Two forms, and the list form has to come first: `import {` would
+      // otherwise fall through to the bare `import` keyword and leave the
+      // names, the `as` aliases and the `from` unpainted.
       import: {
         patterns: [
+          { include: '#import-list-line' },
+          { include: '#import-list-block' },
+          { include: '#import-module' },
+        ],
+      },
+      // `import {a, b as c} from pkg.path` on one line, which is how nearly
+      // every one is written. Whole-line so the `from` and the path it names
+      // are painted in the same pass as the names.
+      'import-list-line': {
+        match:
+          `\\b(import)\\s*(\\{)([^}]*)(\\})` +
+          `(?:\\s*(from)\\s+([A-Za-z_][A-Za-z0-9_./-]*))?`,
+        captures: {
+          1: { name: 'keyword.control.import.beans' },
+          2: { name: 'punctuation.section.braces.beans' },
+          3: { patterns: [{ include: '#import-names' }] },
+          4: { name: 'punctuation.section.braces.beans' },
+          5: { name: 'keyword.control.import.beans' },
+          6: { name: 'entity.name.namespace.beans' },
+        },
+      },
+      // The same list broken over lines. Kept second so the one-line rule
+      // wins, and ended at the `}` plus its `from` clause.
+      'import-list-block': {
+        begin: `\\b(import)\\s*(\\{)`,
+        beginCaptures: {
+          1: { name: 'keyword.control.import.beans' },
+          2: { name: 'punctuation.section.braces.beans' },
+        },
+        end: `(\\})(?:\\s*(from)\\s+([A-Za-z_][A-Za-z0-9_./-]*))?`,
+        endCaptures: {
+          1: { name: 'punctuation.section.braces.beans' },
+          2: { name: 'keyword.control.import.beans' },
+          3: { name: 'entity.name.namespace.beans' },
+        },
+        patterns: [{ include: '#comment' }, { include: '#import-names' }],
+      },
+      // What sits between the braces: `name`, or `name as alias`.
+      'import-names': {
+        patterns: [
           {
-            match: `\\b(import)\\s+([A-Za-z_][A-Za-z0-9_./-]*)(?:\\s+(as)\\s+(${IDENT}))?`,
+            match: `\\b(${IDENT})\\s+(as)\\s+(${IDENT})`,
             captures: {
-              1: { name: 'keyword.control.import.beans' },
-              2: { name: 'entity.name.namespace.beans' },
-              3: { name: 'keyword.control.import.beans' },
-              4: { name: 'entity.name.namespace.alias.beans' },
+              1: { name: 'variable.other.readwrite.alias.beans' },
+              2: { name: 'keyword.control.import.beans' },
+              3: { name: 'variable.other.readwrite.alias.beans' },
+            },
+          },
+          { name: 'variable.other.readwrite.alias.beans', match: `\\b${IDENT}\\b` },
+          { name: 'punctuation.separator.comma.beans', match: ',' },
+        ],
+      },
+      'import-module': {
+        match: `\\b(import)\\s+([A-Za-z_][A-Za-z0-9_./-]*)(?:\\s+(as)\\s+(${IDENT}))?`,
+        captures: {
+          1: { name: 'keyword.control.import.beans' },
+          2: { name: 'entity.name.namespace.beans' },
+          3: { name: 'keyword.control.import.beans' },
+          4: { name: 'entity.name.namespace.alias.beans' },
+        },
+      },
+
+      // ---- annotations ---------------------------------------------------
+      // `@name` and `@pkg.name`, with optional named arguments. The name is
+      // painted, the arguments are ordinary code: `value:` is a name and the
+      // expression after it is an expression.
+      annotation: {
+        patterns: [
+          {
+            match: `(@)(${IDENT}(?:\\.${IDENT})?)`,
+            captures: {
+              1: { name: 'punctuation.definition.annotation.beans' },
+              2: { name: 'entity.name.function.annotation.beans' },
             },
           },
         ],
@@ -277,16 +397,13 @@ export function buildTmLanguage(data) {
           { name: 'storage.modifier.beans', match: wordAlternation(kw.relation) },
           { name: 'storage.type.beans', match: wordAlternation(kw.declaration) },
           // Contextual modifiers: only where the compiler treats them as one.
+          ...contextualModifierRules(ctx),
+          // `annotation Name` declares one. A local called `annotation` is
+          // still a local, so the declaration demands a name after it.
           {
-            name: 'storage.modifier.beans',
-            match: '\\bunique\\b(?=\\s+(?:class))',
+            name: 'storage.type.beans',
+            match: `\\bannotation\\b(?=\\s+${IDENT})`,
           },
-          {
-            name: 'storage.modifier.beans',
-            match: '\\bpacked\\b(?=\\s+(?:struct|union))',
-          },
-          { name: 'storage.modifier.beans', match: '\\balign\\b(?=\\s*\\()' },
-          { name: 'storage.modifier.beans', match: '\\bfeature\\b(?=\\s*")' },
           // `brew f(args)` starts a child fiber. The lookbehind keeps the
           // TaskGroup method `group.brew(...)` an ordinary call, and the
           // lookahead demands the call that must follow.
@@ -364,6 +481,134 @@ export function buildTmLanguage(data) {
           { name: 'punctuation.accessor.beans', match: '\\.' },
           { name: 'punctuation.terminator.beans', match: ';' },
         ],
+      },
+    },
+  };
+}
+
+/**
+ * The `.bx` grammar: Beans with tag expressions in it.
+ *
+ * It is a thin layer over `source.beans` rather than a copy of it. A `.bx`
+ * file *is* a Beans file — bx/DESIGN.md says so in as many words, and its
+ * compiler copies everything outside a tag through untouched — so the tag
+ * rules go first and everything else falls through to the Beans grammar by
+ * scope name. Nothing here has to be kept in step with the Beans grammar,
+ * because none of it is repeated here.
+ *
+ * Which `<` opens a tag is bx/compile.b's decision and this mirrors it
+ * exactly, both halves:
+ *
+ *   1. the byte after `<` starts a name, so `n < 10` is a comparison;
+ *   2. the byte before `<` does not end one, so `List<string>`, `xs[i]<n`
+ *      and `f()<n` keep their `<` as an operator.
+ *
+ * What is left over is `a <b`, a comparison with a space on one side only.
+ * bx reads that as a tag and so does this — painting it as a comparison
+ * would hide an error the compiler is about to report.
+ */
+export function buildBxTmLanguage(data) {
+  const TAG = '[A-Za-z_][A-Za-z0-9_]*';
+  // Rule 2: what may not sit immediately before a tag's `<`.
+  const NOT_AFTER = '(?<![A-Za-z0-9_\\)\\]])';
+  const ATTR = '[A-Za-z_][A-Za-z0-9_]*(?:[-/][A-Za-z0-9_./]+)*';
+
+  return {
+    $schema:
+      'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
+    $generated: GENERATED_BANNER,
+    name: `${data.language.name} Markup`,
+    scopeName: 'source.beans.bx',
+    fileTypes: ['bx'],
+    patterns: [{ include: '#tag' }, { include: 'source.beans' }],
+    repository: {
+      tag: {
+        patterns: [{ include: '#tag-close' }, { include: '#tag-open' }],
+      },
+      'tag-close': {
+        match: `(</)(${TAG})?\\s*(>)`,
+        captures: {
+          1: { name: 'punctuation.definition.tag.begin.bx' },
+          2: { name: 'entity.name.tag.bx' },
+          3: { name: 'punctuation.definition.tag.end.bx' },
+        },
+      },
+      'tag-open': {
+        begin: `${NOT_AFTER}(<)(${TAG})`,
+        beginCaptures: {
+          1: { name: 'punctuation.definition.tag.begin.bx' },
+          2: { name: 'entity.name.tag.bx' },
+        },
+        end: '(/>)|(>)',
+        endCaptures: {
+          1: { name: 'punctuation.definition.tag.end.bx' },
+          2: { name: 'punctuation.definition.tag.end.bx' },
+        },
+        patterns: [{ include: '#tag-attributes' }],
+      },
+
+      // ---- what sits between the tag name and its `>` --------------------
+      'tag-attributes': {
+        patterns: [
+          { include: 'source.beans#comment' },
+          { include: '#attr-handler' },
+          { include: '#attr-expr' },
+          { include: '#attr-text' },
+          { include: '#attr-name' },
+        ],
+      },
+      // `on:click={fn(e, f, c) { ... }}` — a listener. The body is Beans and
+      // holds braces of its own, so #braces swallows every balanced pair and
+      // the block ends on the one that is left.
+      'attr-handler': {
+        begin: `\\b(on)(:)(${ATTR})\\s*(=)\\s*(\\{)`,
+        beginCaptures: {
+          1: { name: 'entity.other.attribute-name.event.bx' },
+          2: { name: 'punctuation.separator.event.bx' },
+          3: { name: 'entity.other.attribute-name.event.bx' },
+          4: { name: 'punctuation.separator.key-value.bx' },
+          5: { name: 'punctuation.section.embedded.begin.bx' },
+        },
+        end: '(\\})',
+        endCaptures: { 1: { name: 'punctuation.section.embedded.end.bx' } },
+        patterns: [{ include: '#braces' }, { include: 'source.beans' }],
+      },
+      // `w={my_width}` — an ordinary Beans expression as the value.
+      'attr-expr': {
+        begin: `\\b(${ATTR})\\s*(=)\\s*(\\{)`,
+        beginCaptures: {
+          1: { name: 'entity.other.attribute-name.bx' },
+          2: { name: 'punctuation.separator.key-value.bx' },
+          3: { name: 'punctuation.section.embedded.begin.bx' },
+        },
+        end: '(\\})',
+        endCaptures: { 1: { name: 'punctuation.section.embedded.end.bx' } },
+        patterns: [{ include: '#braces' }, { include: 'source.beans' }],
+      },
+      // `bg="red"` — a quoted value, resolved by bx at compile time.
+      'attr-text': {
+        match: `\\b(${ATTR})\\s*(=)\\s*(")([^"]*)(")`,
+        captures: {
+          1: { name: 'entity.other.attribute-name.bx' },
+          2: { name: 'punctuation.separator.key-value.bx' },
+          3: { name: 'punctuation.definition.string.begin.bx' },
+          4: { name: 'string.quoted.double.bx' },
+          5: { name: 'punctuation.definition.string.end.bx' },
+        },
+      },
+      // `flex`, `gap-2`, `m-neg-4`, `w-1/2` — a flag or a family and a step.
+      'attr-name': {
+        match: `\\b(${ATTR})`,
+        captures: { 1: { name: 'entity.other.attribute-name.bx' } },
+      },
+      // One balanced `{ ... }`, so an embedded expression can hold a whole
+      // function body without its first `}` ending the attribute.
+      braces: {
+        begin: '\\{',
+        beginCaptures: { 0: { name: 'punctuation.section.braces.beans' } },
+        end: '\\}',
+        endCaptures: { 0: { name: 'punctuation.section.braces.beans' } },
+        patterns: [{ include: '#braces' }, { include: 'source.beans' }],
       },
     },
   };

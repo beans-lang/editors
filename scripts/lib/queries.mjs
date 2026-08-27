@@ -37,6 +37,21 @@ export const KEYWORD_NODES = {
 };
 
 /** Emits a keyword group, splitting anonymous tokens from named-node keywords. */
+/**
+ * The contextual modifiers grammar.js has yet to learn, written into the
+ * generated query as a comment so the gap is visible where it matters rather
+ * than only in a tracker.
+ */
+const pendingModifiers = (ctx) => {
+  const pending = ctx.modifiers.filter((m) => !GRAMMAR_CONTEXTUAL_MODIFIERS.has(m));
+  if (pending.length === 0) return '';
+  return (
+    '; Not yet in tree-sitter-beans/grammar.js, so not yet queryable here:\n' +
+    pending.map((w) => `;   ${w}`).join('\n') +
+    '\n'
+  );
+};
+
 const scmKeywords = (words, capture) => {
   const anonymous = words.filter((w) => !(w in KEYWORD_NODES));
   const nodes = words.filter((w) => w in KEYWORD_NODES);
@@ -45,6 +60,20 @@ const scmKeywords = (words, capture) => {
     nodes.map((w) => `(${KEYWORD_NODES[w]}) ${capture}\n`).join('')
   );
 };
+
+/**
+ * The contextual modifiers `tree-sitter-beans/grammar.js` actually produces a
+ * token for. A `.scm` query naming a token the grammar never emits does not
+ * fail loudly — it takes the whole query file down with it, and Zed then has
+ * no highlighting at all — so the ones the grammar has yet to learn are
+ * listed as a comment instead of a query.
+ *
+ * Adding a word to grammar.js means adding it here. The VS Code TextMate
+ * grammar has all of them already; this list is only about tree-sitter.
+ */
+const GRAMMAR_CONTEXTUAL_MODIFIERS = new Set([
+  'unique', 'packed', 'align', 'feature', 'opaque',
+]);
 
 export function buildHighlights(data) {
   const kw = data.keywords.byRole;
@@ -132,8 +161,12 @@ ${scmKeywords(kw.import, '@keyword.import')}
 
 ; Contextual modifiers: highlighted only where the compiler treats them as
 ; modifiers. Everywhere else they are ordinary identifiers.
-${scmKeywords(ctx.modifiers.filter((m) => m !== 'align'), '@keyword.modifier')}
+${scmKeywords(
+  ctx.modifiers.filter((m) => m !== 'align' && GRAMMAR_CONTEXTUAL_MODIFIERS.has(m)),
+  '@keyword.modifier',
+)}
 (align_modifier (align_keyword) @keyword.modifier)
+${pendingModifiers(ctx)}
 
 ; The brew that starts a child fiber, anchored inside its own node so the
 ; TaskGroup method group.brew(...) stays an ordinary call.

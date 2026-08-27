@@ -5,9 +5,14 @@
 // instant it opens; everything else arrives from the compiler over LSP.
 // Debugging works the same way: `beansc debug-adapter` speaks DAP, and the
 // extension only finds it and starts it.
+//
+// The one exception is `.bx` markup. Tags are crema's, not the language's, so
+// `beansc` has never heard of them and cannot be asked; src/bx.ts answers
+// those from crema's own tables and nothing else.
 
 import * as vscode from 'vscode';
 
+import { registerBx } from './bx';
 import { BeansLanguageClient } from './client';
 import { registerDebugger } from './debugger';
 
@@ -31,6 +36,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // The debugger is the same compiler under a different subcommand. It needs
   // no second engine in the editor either.
   registerDebugger(context, output);
+
+  // Markup is the one thing the compiler cannot answer. `.bx` is crema's, not
+  // the language's, so its tags, attributes and colour names come from crema's
+  // own tables rather than from `beansc lsp` — see src/bx.ts.
+  registerBx(context);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('beans.restartLanguageServer', async () => {

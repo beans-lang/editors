@@ -46,6 +46,11 @@ const steps = [
     args: ['--test', 'test/tmgrammar.test.mjs'],
   },
   {
+    name: 'bx markup: cursor context and grammar',
+    command: 'node',
+    args: ['--test', 'test/bx.test.mjs'],
+  },
+  {
     name: 'compiler path resolution (including paths with spaces)',
     command: 'node',
     args: ['--test', 'test/vscode-resolve.test.mjs'],
