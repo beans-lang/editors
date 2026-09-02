@@ -66,7 +66,7 @@ module.exports = grammar({
 
   // Block comments nest, which a token regex cannot express — src/scanner.c
   // counts depth the way the compiler's lexer does.
-  externals: ($) => [$.block_comment, $.brew_keyword],
+  externals: ($) => [$.block_comment, $.brew_keyword, $.raw_string_literal],
 
   word: ($) => $.identifier,
 
@@ -116,6 +116,7 @@ module.exports = grammar({
         $.union_declaration,
         $.interface_declaration,
         $.enum_declaration,
+        $.const_declaration,
         $.variable_declaration,
       ),
 
@@ -368,6 +369,22 @@ module.exports = grammar({
 
     // Only `pub`: a local takes no other modifier, and letting more in here
     // would make `var packed: Bytes` lex `packed` as a keyword.
+    // `const NAME: T = <expr>` is module level and has no storage: the
+    // checker folds the initializer and every use is that value. `const` is
+    // contextual — a declaration word only in `const <NAME>`, an ordinary
+    // identifier everywhere else — so the type and the value are both
+    // required here, which is what makes the shape unambiguous.
+    const_declaration: ($) =>
+      seq(
+        optional($.visibility_modifier),
+        'const',
+        field('name', $.identifier),
+        ':',
+        field('type', $._type),
+        '=',
+        field('value', $._expression),
+      ),
+
     variable_declaration: ($) =>
       seq(
         optional($.visibility_modifier),
@@ -443,6 +460,7 @@ module.exports = grammar({
         $.float_literal,
         $.boolean_literal,
         $.string_literal,
+        $.raw_string_literal,
         $.list_literal,
         $.map_literal,
         $.struct_literal,
@@ -643,6 +661,7 @@ module.exports = grammar({
         $.integer_literal,
         $.float_literal,
         $.string_literal,
+        $.raw_string_literal,
         $.boolean_literal,
         $.negative_literal,
       ),
@@ -705,7 +724,14 @@ module.exports = grammar({
     string_literal: ($) =>
       seq(
         '"',
-        repeat(choice($.escape_sequence, $.interpolation, $._string_content)),
+        repeat(
+          choice(
+            $.escape_sequence,
+            $._invalid_escape,
+            $.interpolation,
+            $._string_content,
+          ),
+        ),
         '"',
       ),
 
@@ -713,7 +739,18 @@ module.exports = grammar({
     // `"}"` and `"kind == \"}\""` are strings, not broken interpolations.
     _string_content: (_) => token.immediate(prec(1, /[^"\\{]+/)),
 
-    escape_sequence: (_) => token.immediate(/\\[ntr0\\"{}]/),
+    // `\xNN` is one raw byte and `\u{...}` one codepoint. Both carry their
+    // digits, so a half-written `\x1` is not an escape — it is the mistake
+    // the compiler's lexer names.
+    escape_sequence: (_) =>
+      token.immediate(/\\([ntr0\\"{}]|x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\})/),
+
+    // The compiler refuses an unknown escape, but a grammar that cannot
+    // tokenize one stops parsing the file — and an editor then loses
+    // highlighting for everything after a half-typed `\x1`. The longer
+    // escape_sequence token wins wherever it matches, so this only ever
+    // catches what the lexer would name.
+    _invalid_escape: (_) => token.immediate(/\\./),
 
     interpolation: ($) =>
       seq(

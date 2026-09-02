@@ -8,6 +8,11 @@
   "fn" @context
   name: (identifier) @name) @item
 
+(const_declaration
+  (visibility_modifier)? @context
+  "const" @context
+  name: (identifier) @name) @item
+
 (class_declaration
   (visibility_modifier)? @context
   (unique_modifier)? @context

@@ -136,7 +136,8 @@
     ],
     "declarations": [
       "package",
-      "annotation"
+      "annotation",
+      "const"
     ],
     "expressionOperators": [
       "brew"
@@ -161,6 +162,7 @@
       "send": "immediately before `fn` — `send fn run()`",
       "thread_local": "immediately before `let` or `var`",
       "annotation": "`annotation <Name>`, a declaration",
+      "const": "`const <NAME>` at the start of a module-level declaration — `const LIMIT: int = 128`; a local or field named `const` stays a name",
       "type_of": "immediately before `(`",
       "from": "after an import list's closing `}` — `import {a, b} from crema.flex`"
     },

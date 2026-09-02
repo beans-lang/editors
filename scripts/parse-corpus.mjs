@@ -63,6 +63,8 @@ const SYNTAX_INVALID = new Map([
   ['syntax_old_forms_bad.b', "@move_only was removed — use 'unique class'"],
   ['syntax_old_take_bad.b', "'take' was removed — use 'move'"],
   ['syntax_self_bad.b', 'self is implicit in instance methods'],
+  ['raw_string_bad.b', 'a raw literal that never reaches its terminator'],
+  ['raw_open_bad.b', "an interpolation whose nested string never closes"],
 ]);
 
 const expectedInvalid = (path) => {

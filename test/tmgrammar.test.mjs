@@ -138,6 +138,29 @@ describe('strings', () => {
     }
   });
 
+  test('a byte escape and a codepoint escape are escapes', async () => {
+    for (const escape of ['\\x1b', '\\xFF', '\\u{7b}', '\\u{1F600}']) {
+      const source = `let s: string = "${escape}"\n`;
+      await assertScope(source, escape, 'constant.character.escape.beans');
+    }
+  });
+
+  test('a half-written byte or codepoint escape is flagged', async () => {
+    await assertScope('let s: string = "\\x1"\n', '\\x', 'invalid.illegal.unknown-escape.beans');
+    await assertScope('let s: string = "\\u7b"\n', '\\u', 'invalid.illegal.unknown-escape.beans');
+  });
+
+  test('a raw literal is a string and holds no escapes', async () => {
+    await assertScope('let s: string = r"\\d+"\n', 'r"', 'string.quoted.other.raw.beans');
+    await assertScope('let s: string = r"\\d+"\n', '\\d', 'string.quoted.other.raw.beans');
+    await assertScope('let s: string = r"/users/{id}"\n', '{id}', 'string.quoted.other.raw.beans');
+    await assertScope('let s: string = r#"say "hi""#\n', 'say ', 'string.quoted.other.raw.beans');
+  });
+
+  test('a name ending in r is not a raw prefix', async () => {
+    await assertScope('let ptr: string = "x"\n', 'ptr', 'variable.other.beans');
+  });
+
   test('an unknown escape is flagged', async () => {
     await assertScope('let s: string = "\\q"\n', '\\q', 'invalid.illegal.unknown-escape.beans');
   });
