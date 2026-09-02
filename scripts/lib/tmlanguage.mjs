@@ -126,6 +126,7 @@ export function buildTmLanguage(data) {
       main: {
         patterns: [
           { include: '#comment' },
+          { include: '#raw-string' },
           { include: '#string' },
           { include: '#number' },
           { include: '#package' },
@@ -192,12 +193,70 @@ export function buildTmLanguage(data) {
       },
       'string-escape': {
         // The exact set the lexer accepts; anything else is flagged below.
+        // `\\xNN` is one raw byte and `\\u{...}` one codepoint, so both carry
+        // their digits: a half-written `\\x1` is not an escape, it is the
+        // mistake the lexer names.
         name: 'constant.character.escape.beans',
-        match: '\\\\[ntr0\\\\"{}]',
+        match: '\\\\(?:[ntr0\\\\"{}]|x[0-9a-fA-F]{2}|u\\{[0-9a-fA-F]{1,6}\\})',
       },
       'string-escape-invalid': {
         name: 'invalid.illegal.unknown-escape.beans',
         match: '\\\\.',
+      },
+      // `r"…"` and `r#"…"#`: bytes, not syntax. Nothing inside is an escape
+      // and nothing opens an interpolation, so the body carries no patterns
+      // at all. The hashed forms come first because `r#"` also starts with
+      // `r`, and TextMate takes the first rule that matches. A begin/end
+      // pair cannot count its own hashes, so the depths are written out —
+      // three covers every form the compiler's own tests use, and a deeper
+      // one falls back to being highlighted as an ordinary raw body.
+      'raw-string': {
+        patterns: [
+          {
+            name: 'string.quoted.other.raw.beans',
+            begin: '\\br###"',
+            beginCaptures: {
+              0: { name: 'punctuation.definition.string.begin.beans' },
+            },
+            end: '"###',
+            endCaptures: {
+              0: { name: 'punctuation.definition.string.end.beans' },
+            },
+          },
+          {
+            name: 'string.quoted.other.raw.beans',
+            begin: '\\br##"',
+            beginCaptures: {
+              0: { name: 'punctuation.definition.string.begin.beans' },
+            },
+            end: '"##',
+            endCaptures: {
+              0: { name: 'punctuation.definition.string.end.beans' },
+            },
+          },
+          {
+            name: 'string.quoted.other.raw.beans',
+            begin: '\\br#"',
+            beginCaptures: {
+              0: { name: 'punctuation.definition.string.begin.beans' },
+            },
+            end: '"#',
+            endCaptures: {
+              0: { name: 'punctuation.definition.string.end.beans' },
+            },
+          },
+          {
+            name: 'string.quoted.other.raw.beans',
+            begin: '\\br"',
+            beginCaptures: {
+              0: { name: 'punctuation.definition.string.begin.beans' },
+            },
+            end: '"',
+            endCaptures: {
+              0: { name: 'punctuation.definition.string.end.beans' },
+            },
+          },
+        ],
       },
       // `{expr}` may hold a whole expression, including further strings, so the
       // body recurses into #main. A format spec (`{x:8.2}`) rides after the

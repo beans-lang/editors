@@ -11,6 +11,9 @@
 (float_literal) @number
 (boolean_literal) @constant.builtin
 (string_literal) @string
+; A raw literal holds no escapes and no interpolation: the whole token is
+; string, braces and backslashes included.
+(raw_string_literal) @string
 (escape_sequence) @string.escape
 (format_spec) @string.special
 

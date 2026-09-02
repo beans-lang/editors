@@ -8,6 +8,10 @@
         "named": true
       },
       {
+        "type": "const_declaration",
+        "named": true
+      },
+      {
         "type": "enum_declaration",
         "named": true
       },
@@ -107,6 +111,10 @@
       },
       {
         "type": "range_expression",
+        "named": true
+      },
+      {
+        "type": "raw_string_literal",
         "named": true
       },
       {
@@ -656,6 +664,52 @@
           "type": "unique_modifier",
           "named": true
         },
+        {
+          "type": "visibility_modifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "const_declaration",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_type",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
         {
           "type": "visibility_modifier",
           "named": true
@@ -1554,6 +1608,10 @@
           "named": true
         },
         {
+          "type": "raw_string_literal",
+          "named": true
+        },
+        {
           "type": "string_literal",
           "named": true
         }
@@ -1939,6 +1997,10 @@
             "named": true
           },
           {
+            "type": "raw_string_literal",
+            "named": true
+          },
+          {
             "type": "string_literal",
             "named": true
           }
@@ -1962,6 +2024,10 @@
           },
           {
             "type": "negative_literal",
+            "named": true
+          },
+          {
+            "type": "raw_string_literal",
             "named": true
           },
           {
@@ -2654,6 +2720,10 @@
     "named": false
   },
   {
+    "type": "const",
+    "named": false
+  },
+  {
     "type": "continue_statement",
     "named": true
   },
@@ -2789,6 +2859,10 @@
   },
   {
     "type": "primitive_type",
+    "named": true
+  },
+  {
+    "type": "raw_string_literal",
     "named": true
   },
   {

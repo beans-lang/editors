@@ -9,18 +9,26 @@
 // comment never closed"), and in an editor it keeps the rest of the buffer
 // looking like the comment it is instead of flashing as broken code.
 //
-// `brew` is the other job. It starts a child fiber only directly before a
+// `brew` is the second job. It starts a child fiber only directly before a
 // call, and stays an ordinary name everywhere else — `var brew: int = 5`
 // then `brew = brew + 1` is code the compiler accepts. A plain keyword token
 // would win at statement start and break that, and tree-sitter's regular
 // lexer cannot look past the word to decide. The scanner can: it emits the
 // keyword only when a call really follows.
+//
+// A raw literal is the third. `r"…"`, `r#"…"#`, `r##"…"##`: the terminator
+// is a quote followed by exactly as many hashes as the opener used, and a
+// count is not something a regular expression holds. The body is bytes —
+// nothing in it is an escape and nothing opens an interpolation — so the
+// whole literal is one token. `r` is a prefix only when the quote follows
+// it with nothing between, which is what keeps `str` and `ptr` names.
 
 #include "tree_sitter/parser.h"
 
 enum TokenType {
   BLOCK_COMMENT,
   BREW_KEYWORD,
+  RAW_STRING_LITERAL,
 };
 
 void *tree_sitter_beans_external_scanner_create(void) { return NULL; }
@@ -111,14 +119,56 @@ static bool scan_brew_keyword(TSLexer *lexer) {
   return true;
 }
 
+// `r`, then n hashes, then a quote; the body runs to a quote followed by n
+// hashes. Unterminated takes the rest of the file, the way an unterminated
+// block comment does: in an editor the buffer keeps looking like the string
+// it is instead of flashing as broken code.
+static bool scan_raw_string(TSLexer *lexer) {
+  if (lexer->lookahead != 'r') return false;
+  advance(lexer);
+
+  unsigned hashes = 0;
+  while (lexer->lookahead == '#') {
+    advance(lexer);
+    hashes++;
+  }
+  if (lexer->lookahead != '"') return false;
+  advance(lexer);
+
+  for (;;) {
+    if (lexer->eof(lexer)) break;
+    if (lexer->lookahead == '"') {
+      advance(lexer);
+      unsigned seen = 0;
+      while (seen < hashes && lexer->lookahead == '#') {
+        advance(lexer);
+        seen++;
+      }
+      if (seen == hashes) break;
+    } else {
+      advance(lexer);
+    }
+  }
+
+  lexer->result_symbol = RAW_STRING_LITERAL;
+  return true;
+}
+
 bool tree_sitter_beans_external_scanner_scan(void *payload, TSLexer *lexer,
                                              const bool *valid_symbols) {
   (void)payload;
 
-  if (!valid_symbols[BLOCK_COMMENT] && !valid_symbols[BREW_KEYWORD])
+  if (!valid_symbols[BLOCK_COMMENT] && !valid_symbols[BREW_KEYWORD] &&
+      !valid_symbols[RAW_STRING_LITERAL])
     return false;
 
   while (is_space(lexer->lookahead)) skip(lexer);
+
+  if (valid_symbols[RAW_STRING_LITERAL] && lexer->lookahead == 'r') {
+    if (scan_raw_string(lexer)) return true;
+    // Just a name that starts with `r`: leave it to the normal lexer.
+    return false;
+  }
 
   if (valid_symbols[BREW_KEYWORD] && lexer->lookahead == 'b') {
     if (scan_brew_keyword(lexer)) return true;

@@ -18,6 +18,9 @@
           "include": "#comment"
         },
         {
+          "include": "#raw-string"
+        },
+        {
           "include": "#string"
         },
         {
@@ -139,11 +142,75 @@
     },
     "string-escape": {
       "name": "constant.character.escape.beans",
-      "match": "\\\\[ntr0\\\\\"{}]"
+      "match": "\\\\(?:[ntr0\\\\\"{}]|x[0-9a-fA-F]{2}|u\\{[0-9a-fA-F]{1,6}\\})"
     },
     "string-escape-invalid": {
       "name": "invalid.illegal.unknown-escape.beans",
       "match": "\\\\."
+    },
+    "raw-string": {
+      "patterns": [
+        {
+          "name": "string.quoted.other.raw.beans",
+          "begin": "\\br###\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.beans"
+            }
+          },
+          "end": "\"###",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.beans"
+            }
+          }
+        },
+        {
+          "name": "string.quoted.other.raw.beans",
+          "begin": "\\br##\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.beans"
+            }
+          },
+          "end": "\"##",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.beans"
+            }
+          }
+        },
+        {
+          "name": "string.quoted.other.raw.beans",
+          "begin": "\\br#\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.beans"
+            }
+          },
+          "end": "\"#",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.beans"
+            }
+          }
+        },
+        {
+          "name": "string.quoted.other.raw.beans",
+          "begin": "\\br\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.beans"
+            }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.beans"
+            }
+          }
+        }
+      ]
     },
     "interpolation": {
       "name": "meta.interpolation.beans",
