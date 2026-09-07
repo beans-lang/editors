@@ -995,7 +995,10 @@ export function buildBxTmLanguage(data, bx) {
     'attr-expr': {
       begin: `\\b(${NAME})\\s*(=)\\s*(\\{)`,
       beginCaptures: {
-        1: { name: 'entity.other.attribute-name.bx' },
+        1: {
+          name: 'entity.other.attribute-name.bx',
+          patterns: [{ include: '#namespace-prefix' }],
+        },
         2: { name: 'punctuation.separator.key-value.bx' },
         3: { name: 'punctuation.section.embedded.begin.bx' },
       },
@@ -1010,7 +1013,10 @@ export function buildBxTmLanguage(data, bx) {
     'attr-string': {
       match: `\\b(${NAME})\\s*(=)\\s*(")([^"]*)(")`,
       captures: {
-        1: { name: 'entity.other.attribute-name.bx' },
+        1: {
+          name: 'entity.other.attribute-name.bx',
+          patterns: [{ include: '#namespace-prefix' }],
+        },
         2: { name: 'punctuation.separator.key-value.bx' },
         3: { name: 'punctuation.definition.string.begin.bx' },
         4: { name: 'string.quoted.double.bx', patterns: [{ include: '#entity' }] },
@@ -1027,17 +1033,21 @@ export function buildBxTmLanguage(data, bx) {
       match: `\\b(?:${alt(bx.booleanAttributes)})\\b(?!\\s*=)`,
     },
     'attr-name': {
-      patterns: [
-        {
-          match: `\\b(${alt(xmlNamespaces)})(:)(${NAME})`,
-          captures: {
-            1: { name: 'entity.other.attribute-name.namespace.bx' },
-            2: { name: 'punctuation.separator.namespace.bx' },
-            3: { name: 'entity.other.attribute-name.bx' },
-          },
-        },
-        { name: 'entity.other.attribute-name.bx', match: `\\b${NAME}` },
-      ],
+      name: 'entity.other.attribute-name.bx',
+      match: `\\b${NAME}`,
+      captures: { 0: { patterns: [{ include: '#namespace-prefix' }] } },
+    },
+    // `xlink:`, `xml:` and `xmlns:` are the three namespaces HTML and SVG
+    // actually have, and latte treats one as part of an ordinary attribute
+    // name rather than as a namespace of its own. It is painted inside
+    // whichever name rule matched, because the value is that rule's to paint
+    // and splitting the name off would leave the `="…"` behind unpainted.
+    'namespace-prefix': {
+      match: `\\b(${alt(xmlNamespaces)})(:)`,
+      captures: {
+        1: { name: 'entity.other.attribute-name.namespace.bx' },
+        2: { name: 'punctuation.separator.namespace.bx' },
+      },
     },
 
     // ---- raw-text elements -------------------------------------------------

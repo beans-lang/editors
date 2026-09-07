@@ -418,7 +418,12 @@
       "begin": "\\b([A-Za-z_][A-Za-z0-9_.:-]*)\\s*(=)\\s*(\\{)",
       "beginCaptures": {
         "1": {
-          "name": "entity.other.attribute-name.bx"
+          "name": "entity.other.attribute-name.bx",
+          "patterns": [
+            {
+              "include": "#namespace-prefix"
+            }
+          ]
         },
         "2": {
           "name": "punctuation.separator.key-value.bx"
@@ -446,7 +451,12 @@
       "match": "\\b([A-Za-z_][A-Za-z0-9_.:-]*)\\s*(=)\\s*(\")([^\"]*)(\")",
       "captures": {
         "1": {
-          "name": "entity.other.attribute-name.bx"
+          "name": "entity.other.attribute-name.bx",
+          "patterns": [
+            {
+              "include": "#namespace-prefix"
+            }
+          ]
         },
         "2": {
           "name": "punctuation.separator.key-value.bx"
@@ -472,26 +482,28 @@
       "match": "\\b(?:allowfullscreen|formnovalidate|playsinline|novalidate|autofocus|itemscope|autoplay|controls|disabled|multiple|nomodule|readonly|required|reversed|selected|checked|default|async|defer|inert|ismap|muted|loop|open)\\b(?!\\s*=)"
     },
     "attr-name": {
-      "patterns": [
-        {
-          "match": "\\b(xlink|xmlns|xml)(:)([A-Za-z_][A-Za-z0-9_.:-]*)",
-          "captures": {
-            "1": {
-              "name": "entity.other.attribute-name.namespace.bx"
-            },
-            "2": {
-              "name": "punctuation.separator.namespace.bx"
-            },
-            "3": {
-              "name": "entity.other.attribute-name.bx"
+      "name": "entity.other.attribute-name.bx",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_.:-]*",
+      "captures": {
+        "0": {
+          "patterns": [
+            {
+              "include": "#namespace-prefix"
             }
-          }
-        },
-        {
-          "name": "entity.other.attribute-name.bx",
-          "match": "\\b[A-Za-z_][A-Za-z0-9_.:-]*"
+          ]
         }
-      ]
+      }
+    },
+    "namespace-prefix": {
+      "match": "\\b(xlink|xmlns|xml)(:)",
+      "captures": {
+        "1": {
+          "name": "entity.other.attribute-name.namespace.bx"
+        },
+        "2": {
+          "name": "punctuation.separator.namespace.bx"
+        }
+      }
     },
     "raw-script": {
       "begin": "(<)(script)\\b([^>]*?)(?<!/)(>)",

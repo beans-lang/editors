@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!-- The whole surface in one file, so a scanner or a grammar that falls into a
+     region and never comes out fails at the last byte rather than at some
+     offset nobody thought to test. -->
+<section class="counter" data-count="0">
+    <h2>Count: $self.count</h2>
+    <p class="muted">as of $self.clock.now() — $5.00, US$ and $ 20 are text</p>
+    <p>a \} literal brace, a &lt; entity, and $$if which is not a block</p>
+
+    <button class="primary" disabled
+            on:click={fn(e: MouseEvent) { self.count += 1 }}>
+        Add one
+    </button>
+
+    <input bind:value.int={self.note} placeholder="A note" />
+    <input bind:checked={self.on} />
+    <a href="https://example.com" xlink:href="#a">link</a>
+    <br>
+    <img src="/logo.png" alt="logo" />
+
+    $if self.count > 10 {
+        <p class="warn">That is a lot, $self.note</p>
+    } else if self.count > 5 {
+        <p>Middling</p>
+    } else {
+        <Hint text="Keep going" on_dismiss={self.hide} />
+    }
+
+    <ul preserve>
+        $for row: Row in self.rows.filter(fn(r: Row) -> bool { r.ok }) {
+            <li key={row.id} ref={self.last}>$row.title</li>
+        }
+    </ul>
+
+    $match self.state {
+        some(x) => { <b>$x</b> }
+        none => { <i>nothing</i> }
+    }
+
+    ${ let total: int = 1 + 2 }
+    $html(self.rendered)
+    $(self.a + self.b)
+    $slot
+    $slot:row
+
+    <ui.Button label="Go" />
+    <div attrs={self.extra}>splat</div>
+
+    <script>if (a < b) { go("</x>") }</script>
+    <style>.a { color: red }</style>
+</section>
+
+<beans>
+import {Clock} from app.clock
+
+@page(route: r"/counter/{start}")
+@layout(name: "Main")
+pub partial class Counter extends Component {
+    @param pub start: int = 0
+    pub count: int = 0
+    pub note: string = ""
+    pub rows: List<Row> = []
+    clock: Clock
+
+    pub fn init(clock: Clock) { self.clock = clock }
+    fn hide() { self.rows.clear() }
+    fn label() -> string { return "<div> is not a tag in here" }
+}
+</beans>
