@@ -1,8 +1,14 @@
 #!/usr/bin/env node
-// Regenerates every derived editor asset from editors/shared/language.json.
+// Regenerates every derived editor asset from editors/shared/language.json and
+// editors/shared/bx.json.
 //
-//   node scripts/generate.mjs            write the files
-//   node scripts/generate.mjs --check    fail if anything is out of date (CI)
+//   node scripts/generate.mjs               write the files
+//   node scripts/generate.mjs --check       fail if anything is out of date (CI)
+//   node scripts/generate.mjs --bx <path>   read the .bx vocabulary from <path>
+//
+// `--bx` is for regenerating against a latte checkout other than the one whose
+// output is committed, and for the test that proves a wrong-shaped vocabulary
+// is refused rather than silently emptied.
 //
 // Nothing here reads the beans repository. Proving shared/language.json still
 // matches the compiler is sync-beans.mjs's job.
@@ -14,7 +20,10 @@ import {
   loadLanguageData,
   loadBxData,
   editorsRoot,
+  BX_SCHEMA,
+  BX_ROW_FIELDS,
   GENERATED_BANNER,
+  BX_GENERATED_BANNER,
 } from './lib/language-data.mjs';
 import {
   buildTmLanguage,
@@ -34,8 +43,27 @@ import {
 
 const check = process.argv.includes('--check');
 
+const bxFlag = process.argv.indexOf('--bx');
+if (bxFlag !== -1 && process.argv[bxFlag + 1] === undefined) {
+  console.error('--bx needs a path to a bx.json after it');
+  process.exit(2);
+}
+
 const data = loadLanguageData();
-const bx = loadBxData();
+
+// Loud, and before anything is written. `loadBxData` refuses a vocabulary of
+// the wrong shape; printing the message without the stack keeps the reason —
+// which names every missing table — the first thing on the screen.
+let bx;
+try {
+  bx = bxFlag === -1 ? loadBxData() : loadBxData(process.argv[bxFlag + 1]);
+} catch (problem) {
+  console.error(problem.message);
+  process.exit(1);
+}
+
+/** The TypeScript type each schema kind emits. */
+const BX_TS_TYPE = { rows: 'BxRow[]', events: 'BxEvent[]', names: 'string[]' };
 
 /**
  * `shared/bx.json` as a TypeScript module.
@@ -43,68 +71,51 @@ const bx = loadBxData();
  * The extension is bundled from `src/`, and `tsconfig.json` sets `rootDir` to
  * it, so a JSON file two directories up cannot be imported. Emitting it as a
  * source file keeps the data typed, bundled and generated all at once.
+ *
+ * **Both the interface and the object are built from `BX_SCHEMA`**, and that is
+ * the fix for a real bug rather than tidiness. The old version destructured the
+ * nine keys it wanted and handed them to `JSON.stringify`, which drops every
+ * `undefined` without a word: a `bx.json` of the wrong shape produced a
+ * `bx-data.ts` with eight of its nine tables gone, and got past both `npm run
+ * generate` and the drift gate on the way. `loadBxData` now refuses that file,
+ * and this function can no longer name a key the check has not seen.
  */
 function buildBxData(b) {
+  const fields = Object.entries(BX_SCHEMA)
+    .map(([key, kind]) => `  ${key}: ${BX_TS_TYPE[kind]};`)
+    .join('\n');
   // The `$`-prefixed provenance keys belong in shared/bx.json, where a reader
   // needs them; the module says the same thing in its header.
-  const { tags, flags, ramps, stepTables, counts, texts, values, events, colors } = b;
-  const json = JSON.stringify(
-    { tags, flags, ramps, stepTables, counts, texts, values, events, colors },
-    null,
-    2,
+  const vocabulary = Object.fromEntries(
+    Object.keys(BX_SCHEMA).map((key) => [key, b[key]]),
   );
-  return `// ${GENERATED_BANNER}
+  const json = JSON.stringify(vocabulary, null, 2);
+  const row = (kind) => BX_ROW_FIELDS[kind].map((f) => `  ${f}: string;`).join('\n');
+
+  return `// ${BX_GENERATED_BANNER}
 //
-// Printed by community-libs/crema/tests/_bx_editor_data.b, out of bx's own
-// tables in crema. Regenerate with:
+// The vocabulary itself is printed by latte, out of its own tables:
 //
-//     beansc run tests/_bx_editor_data.b > editors/shared/bx.json
-//     npm run generate
+//     cd community-libs/latte
+//     build/latte-bx vocabulary > editors/shared/bx.json
+//     cd editors && npm run generate
+//
+// latte's suite tests/w2_editor_data.b holds the same string as its golden and
+// tests/markup.b asks html.b's predicates about every name in it, so this
+// cannot drift from the compiler without failing latte's own gate.
 
-export interface BxTag {
-  name: string;
-  call: string;
-  styled: boolean;
-  parent: boolean;
-  note: string;
+/** One named thing in the surface: what to write, and why. */
+export interface BxRow {
+${row('rows')}
 }
 
-export interface BxRamp {
-  family: string;
-  table: string;
-}
-
-export interface BxText {
-  attr: string;
-  kind: string;
-}
-
-export interface BxValue {
-  attr: string;
-  takes: string;
-}
-
+/** One DOM event: the class its handler takes, and the Builder method. */
 export interface BxEvent {
-  event: string;
-  payload: string;
-  signature: string;
-}
-
-export interface BxColor {
-  name: string;
-  hex: string;
+${row('events')}
 }
 
 export interface BxVocabulary {
-  tags: BxTag[];
-  flags: string[];
-  ramps: BxRamp[];
-  stepTables: Record<string, string[]>;
-  counts: string[];
-  texts: BxText[];
-  values: BxValue[];
-  events: BxEvent[];
-  colors: BxColor[];
+${fields}
 }
 
 export const BX: BxVocabulary = ${json};
@@ -141,7 +152,7 @@ const outputs = [
   },
   {
     path: 'vscode/syntaxes/beans-bx.tmLanguage.json',
-    content: `${JSON.stringify(buildBxTmLanguage(data), null, 2)}\n`,
+    content: `${JSON.stringify(buildBxTmLanguage(data, bx), null, 2)}\n`,
   },
   { path: 'vscode/src/bx-data.ts', content: buildBxData(bx) },
   {
