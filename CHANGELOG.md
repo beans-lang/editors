@@ -9,6 +9,62 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+### Changed
+
+- **`.bx` is latte's markup now, and crema's `.bx` support is gone.** They were
+  never the same language. crema's `.bx` was a Beans file with tag expressions
+  in function bodies, where a `<` opened a tag only if a name did not end just
+  before it and `"…<div>…"` was a string. latte's is a **markup document**:
+  outside the `<beans>` block a `<` *always* opens a tag — the compiler refuses
+  one that does not and tells you to write `&lt;` — and that same text *is*
+  markup. `.bx` binds to one language with one grammar, so supporting latte
+  meant dropping crema. crema is no longer developed.
+
+  Concretely: the grammar is inverted, the scanner behind completion and hover
+  starts in markup rather than in Beans, and the `.bx` comment is `<!-- -->`
+  rather than `//`.
+
+- **The `.bx` vocabulary is printed by latte.** `shared/bx.json` now holds
+  latte's `$` blocks, its interpolation forms, its attribute namespaces, its
+  DOM events with the class each handler takes, its bindings and conversions,
+  its reserved attributes and the HTML tables its compiler decides with. It is
+  what `latte-bx vocabulary` prints, byte for byte. None of crema's nine tables
+  survived — the 2 tags, the 128 utility flags, the ramps and step tables, the
+  391 colour names and the 17 GPUI events are all gone, and `events` shares only
+  its key name with what replaced it.
+
+### Added
+
+- **`<beans>`, `<script>` and `<style>` are raw text.** The `<beans>` block's
+  body is Beans and is painted as Beans; nothing inside it is markup, so a `<`,
+  a `$` or a brace in there is just Beans. `<script>` and `<style>` hand their
+  bodies to JavaScript and CSS — latte refuses an expression inside either, and
+  that is a security control rather than a diagnostic, because `</script>`
+  closes the element from inside a JavaScript string and HTML escaping is no
+  defence there.
+
+- **The grammar agrees with the compiler about what is wrong.** A `<` that opens
+  nothing, an event `on:` does not have, an attribute namespace outside latte's
+  five, a boolean attribute given a string, an attribute whose name starts with
+  `on`, and — on a component tag, whose rules are not an element's — `on:`,
+  `attrs`, `preserve` and a parameter name that is not a Beans identifier.
+
+### Fixed
+
+- **A wrong-shaped `shared/bx.json` used to pass everything.** `buildBxData`
+  destructured the keys it wanted and handed them to `JSON.stringify`, which
+  drops every `undefined` without a word, so a vocabulary of the wrong shape
+  produced a `bx-data.ts` with most of its tables gone and got past both
+  `npm run generate` and the drift check on the way. It is refused now, by name,
+  every fault at once, and in both directions: a table that is missing, empty or
+  the wrong type, and a table latte grew that the editor has never heard of.
+
+### Removed
+
+- **Colour swatches and the colour picker for `.bx`.** They read crema's table
+  of 391 names. latte has no colour table, and a swatch beside `class="…"` would
+  be the editor's invention rather than the language's fact.
+
 ## [0.5.0]
 
 ### Added
