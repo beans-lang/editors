@@ -62,7 +62,7 @@
       {
         "id": "beans-bx",
         "aliases": [
-          "Beans Markup",
+          "Latte Markup",
           "beans-bx",
           "bx"
         ],
@@ -101,7 +101,13 @@
         "scopeName": "source.beans.bx",
         "path": "./syntaxes/beans-bx.tmLanguage.json",
         "embeddedLanguages": {
-          "source.beans": "beans"
+          "source.beans": "beans",
+          "meta.embedded.block.beans": "beans",
+          "meta.embedded.line.beans": "beans",
+          "source.js": "javascript",
+          "meta.embedded.block.script": "javascript",
+          "source.css": "css",
+          "meta.embedded.block.style": "css"
         }
       },
       {

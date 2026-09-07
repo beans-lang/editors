@@ -1,12 +1,16 @@
 {
+  "$comment": "A latte .bx file is a markup document, not Beans with tags in it. Its comment is <!-- -->, not //: a // in markup is two ordinary characters that reach the page, and Toggle Comment writing one would delete nothing and add text to the output. The Beans inside <beans> keeps its own comments through the grammar's embedded scopes.",
   "comments": {
-    "lineComment": "//",
     "blockComment": [
-      "/*",
-      "*/"
+      "<!--",
+      "-->"
     ]
   },
   "brackets": [
+    [
+      "<",
+      ">"
+    ],
     [
       "{",
       "}"
@@ -18,10 +22,6 @@
     [
       "(",
       ")"
-    ],
-    [
-      "<",
-      ">"
     ]
   ],
   "autoClosingPairs": [
@@ -46,14 +46,15 @@
       ]
     },
     {
-      "open": "/*",
-      "close": " */",
+      "open": "<!--",
+      "close": " -->",
       "notIn": [
+        "comment",
         "string"
       ]
     }
   ],
-  "autoCloseBefore": ";:.,=}])> \n\t",
+  "autoCloseBefore": ";:.,=}])>$ \n\t",
   "surroundingPairs": [
     [
       "{",
@@ -92,41 +93,42 @@
   ],
   "folding": {
     "markers": {
-      "start": "^\\s*//\\s*#?region\\b",
-      "end": "^\\s*//\\s*#?endregion\\b"
+      "start": "^\\s*<!--\\s*#?region\\b",
+      "end": "^\\s*<!--\\s*#?endregion\\b"
     }
   },
-  "wordPattern": "[A-Za-z_][A-Za-z0-9_]*(?:[-/][A-Za-z0-9_./]+)*",
+  "$wordPatternComment": "An attribute name may carry - . and :, so on:click, bind:value.int and data-count are one word each; the leading $ is optional so $if and $self.count are too.",
+  "wordPattern": "\\$?[A-Za-z_][A-Za-z0-9_]*(?:[-.:][A-Za-z0-9_.:-]+)*",
+  "$indentComment": "Indent after an open tag that is not self-closing, after a $ block's header brace, and after any of the bracket pairs. Outdent on a closing tag, a bare } (which at markup level closes a block) and the other closers.",
   "indentationRules": {
-    "increaseIndentPattern": "^((?!//).)*(\\{[^}\"'`]*|\\([^)\"'`]*|\\[[^\\]\"'`]*|<[A-Za-z_][A-Za-z0-9_]*(?![^>]*/>)[^>]*>)$",
-    "decreaseIndentPattern": "^\\s*(?:[)\\]}]|</[A-Za-z_][A-Za-z0-9_]*\\s*>)"
+    "increaseIndentPattern": "(\\{[^}\"']*|\\([^)\"']*|\\[[^\\]\"']*|<[A-Za-z_][A-Za-z0-9_.:-]*(?![^>]*/>)[^>]*>)$",
+    "decreaseIndentPattern": "^\\s*(?:[)\\]}]|</[A-Za-z_][A-Za-z0-9_.:-]*\\s*>)"
   },
   "onEnterRules": [
     {
-      "beforeText": "^\\s*///.*$",
-      "action": {
-        "indent": "none",
-        "appendText": "/// "
-      }
-    },
-    {
-      "beforeText": "^\\s*/\\*\\*(?!/)([^\\*]|\\*(?!/))*$",
-      "afterText": "^\\s*\\*/$",
-      "action": {
-        "indent": "indentOutdent",
-        "appendText": " * "
-      }
-    },
-    {
       "$comment": "Enter between an open and a close tag indents and puts the close tag on its own line.",
-      "beforeText": "<([A-Za-z_][A-Za-z0-9_]*)(?:\\s[^>]*)?>$",
-      "afterText": "^</[A-Za-z_][A-Za-z0-9_]*>",
+      "beforeText": "<([A-Za-z_][A-Za-z0-9_.:-]*)(?:\\s[^>]*)?>$",
+      "afterText": "^</[A-Za-z_][A-Za-z0-9_.:-]*>",
       "action": {
         "indent": "indentOutdent"
       }
     },
     {
-      "beforeText": "<([A-Za-z_][A-Za-z0-9_]*)(?:\\s[^>]*)?>$",
+      "beforeText": "<([A-Za-z_][A-Za-z0-9_.:-]*)(?:\\s[^>]*)?>$",
+      "action": {
+        "indent": "indent"
+      }
+    },
+    {
+      "$comment": "Enter between a $ block's braces does the same. The header is copied through as Beans and may hold anything, so the rule asks only for the brace that ends it.",
+      "beforeText": "\\{$",
+      "afterText": "^\\s*\\}",
+      "action": {
+        "indent": "indentOutdent"
+      }
+    },
+    {
+      "beforeText": "^\\s*(?:\\$(?:if|for|match)|else)\\b.*\\{$",
       "action": {
         "indent": "indent"
       }

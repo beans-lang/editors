@@ -1,42 +1,51 @@
 // Markup intelligence for `.bx` files.
 //
-// A `.bx` file is a Beans file with tag expressions in it, and the two halves
-// are answered by two different things. Everything outside a tag is Beans, and
-// Beans is `beansc lsp`'s to answer — this file never touches it. Everything
-// inside a tag is markup, which the compiler has never heard of: the vocabulary
-// lives in `crema`'s `bx` package, and `src/bx-data.ts` is that vocabulary,
-// printed out of bx's own tables rather than typed out again here.
+// A latte `.bx` file is a markup document with Beans in it, and the two halves
+// are answered by two different things. The Beans — the `<beans>` block, a
+// header, a `{ }` value — is the compiler's to answer and this file never
+// touches it. The markup is latte's, which `beansc` has never heard of: the
+// vocabulary lives in latte's `bx` package, and `src/bx-data.ts` is that
+// vocabulary, printed out of latte's own tables rather than typed out here.
 //
-// So the rule this file follows is the same one `src/client.ts` states for the
-// language server: one engine per question. Tag names, attributes, ramp steps,
-// events and colour names come from the tables; nothing else is offered.
+// So the rule this file follows is the one `src/client.ts` states for the
+// language server: one engine per question. Blocks, interpolations, attribute
+// namespaces, events, bindings, reserved attributes and the HTML tables come
+// from the tables; nothing else is offered.
+//
+// **What is deliberately not offered.** There is no list of HTML element
+// names, because latte has none: any name is an element and a capitalised one
+// is a component, so a list here would be this file's invention. What is
+// offered instead is the elements latte has a *rule* about — the void
+// elements, the raw-text elements, the ones whose content is RCDATA and the
+// ones that eat a leading newline — because those are facts, and each is
+// offered with the rule beside it.
 
 import * as vscode from 'vscode';
 
 import {
+  BEANS_BLOCK,
+  BINDINGS,
+  BLOCKS,
+  BOOLEAN_ATTRIBUTES,
   BX,
   BX_LANGUAGE_ID,
-  COLOR_HEX,
-  COUNTS,
   EVENTS,
-  FLAGS,
-  RAMP_TABLE,
-  TAGS,
-  TEXT_KIND,
-  VALUE_TAKES,
+  INTERPOLATIONS,
+  NAMESPACES,
+  NEWLINE_EATING_ELEMENTS,
+  RAW_TEXT_ELEMENTS,
+  RCDATA_ELEMENTS,
+  RESERVED,
+  URL_ATTRIBUTES,
+  VOID_ELEMENTS,
+  bindingOf,
   bxContextAt,
-  rampFamilyOf,
-  swatch,
-  takesAColor,
+  namesAComponent,
   type BxContext,
+  type BxRow,
 } from './bx-model';
 
 export { BX_LANGUAGE_ID };
-
-function colorOf(hex: string): vscode.Color {
-  const channel = (at: number): number => parseInt(hex.slice(at, at + 2), 16) / 255;
-  return new vscode.Color(channel(0), channel(2), channel(4), channel(6));
-}
 
 // ---------------------------------------------------------------------------
 // Completion
@@ -44,17 +53,40 @@ function colorOf(hex: string): vscode.Color {
 
 const RETRIGGER: vscode.Command = {
   command: 'editor.action.triggerSuggest',
-  title: 'suggest the step',
+  title: 'suggest what comes next',
 };
 
-function item(
-  label: string,
+function fromRow(
+  row: BxRow,
   kind: vscode.CompletionItemKind,
-  detail: string,
+  sort: string,
 ): vscode.CompletionItem {
-  const entry = new vscode.CompletionItem(label, kind);
-  entry.detail = detail;
+  const entry = new vscode.CompletionItem(row.name, kind);
+  entry.detail = row.detail;
+  entry.documentation = new vscode.MarkdownString(row.note);
+  entry.sortText = `${sort}${row.name}`;
   return entry;
+}
+
+/** What latte knows about an element, or "" when it knows nothing special. */
+function elementRule(tag: string): string {
+  const name = tag.toLowerCase();
+  if (name === BEANS_BLOCK) {
+    return 'latte\'s Beans block: one per file, at the top level, holding Beans and nothing else.';
+  }
+  const rules: string[] = [];
+  if (VOID_ELEMENTS.has(name)) rules.push('a void element — it takes no children');
+  if (RAW_TEXT_ELEMENTS.has(name)) {
+    rules.push(
+      'raw text — its body is not parsed, and an expression inside it is refused: ' +
+        `\`</${name}>\` closes the element from inside a string, so HTML escaping is no defence`,
+    );
+  }
+  if (RCDATA_ELEMENTS.has(name)) rules.push('RCDATA — character references resolve, tags do not');
+  if (NEWLINE_EATING_ELEMENTS.has(name)) {
+    rules.push('the parser drops one newline after the start tag, so write two to keep one');
+  }
+  return rules.join('; ');
 }
 
 class BxCompletionProvider implements vscode.CompletionItemProvider {
@@ -69,89 +101,118 @@ class BxCompletionProvider implements vscode.CompletionItemProvider {
       case 'attr':
         return this.attributes(context);
       case 'value':
-        return takesAColor(context.attr) ? this.colors() : [];
+        return this.values(context);
+      case 'text':
+        return context.prefix.startsWith('$') ? this.transitions() : [];
       default:
         return [];
     }
   }
 
+  /** The elements latte has a rule about, each offered with its rule. */
   private tags(): vscode.CompletionItem[] {
-    return BX.tags.map((tag) => {
-      const entry = item(tag.name, vscode.CompletionItemKind.Class, tag.call);
-      entry.documentation = new vscode.MarkdownString(
-        tag.parent
-          ? `Builds \`${tag.call}\`. Takes attributes and children.`
-          : `Builds \`${tag.call}\`.${tag.note === '' ? '' : ` ${tag.note}.`}`,
-      );
-      return entry;
-    });
+    const out: vscode.CompletionItem[] = [];
+    const beans = new vscode.CompletionItem(BEANS_BLOCK, vscode.CompletionItemKind.Module);
+    beans.detail = 'the Beans block';
+    beans.documentation = new vscode.MarkdownString(elementRule(BEANS_BLOCK));
+    beans.sortText = `0${BEANS_BLOCK}`;
+    out.push(beans);
+    const named = new Set([
+      ...BX.voidElements,
+      ...BX.rawTextElements,
+      ...BX.rcdataElements,
+      ...BX.newlineEatingElements,
+    ]);
+    for (const tag of [...named].sort()) {
+      const entry = new vscode.CompletionItem(tag, vscode.CompletionItemKind.Class);
+      entry.detail = VOID_ELEMENTS.has(tag) ? 'void element' : 'element';
+      entry.documentation = new vscode.MarkdownString(elementRule(tag));
+      // A void element closes itself; everything else gets a closing tag from
+      // `closeTagOnType` once its `>` is typed.
+      if (VOID_ELEMENTS.has(tag)) entry.insertText = new vscode.SnippetString(`${tag} $0/>`);
+      entry.sortText = `1${tag}`;
+      out.push(entry);
+    }
+    return out;
   }
 
   private attributes(context: BxContext): vscode.CompletionItem[] {
-    // Mid-way through `gap-`, the steps of that family are the answer and the
-    // whole attribute surface is noise.
-    const ramp = rampFamilyOf(context.prefix);
-    if (ramp !== undefined) {
-      const steps = BX.stepTables[ramp.table] ?? [];
-      return steps.map((step) => {
-        const entry = item(
-          `${ramp.family}-${step}`,
-          vscode.CompletionItemKind.EnumMember,
-          `style.${ramp.table}.${step}`,
-        );
-        entry.filterText = `${ramp.family}-${step}`;
-        return entry;
-      });
+    const prefix = context.prefix;
+    // Mid-way through `on:` or `bind:`, that namespace's members are the
+    // answer and the whole attribute surface is noise.
+    if (prefix.startsWith('on:')) return this.events();
+    const binding = bindingOf(prefix);
+    if (binding !== undefined) {
+      if (binding.target === 'value' && prefix.includes('.')) return this.conversions();
+      return this.bindings();
     }
-    if (context.prefix.startsWith('on:')) return this.events();
+
+    // A component takes its parameters by their Beans names, which only its
+    // author knows, so nothing here can list them. What *is* known is that
+    // `on:`, `attrs` and `preserve` are refused on one and `key` and `ref` are
+    // not — offering the element surface here would offer four things latte
+    // will reject.
+    if (namesAComponent(context.tag)) {
+      return BX.reservedAttributes
+        .filter((row) => row.name === 'key' || row.name === 'ref')
+        .map((row) => {
+          const entry = fromRow(row, vscode.CompletionItemKind.Keyword, '0');
+          entry.insertText = new vscode.SnippetString(`${row.name}={$1}`);
+          return entry;
+        });
+    }
 
     const out: vscode.CompletionItem[] = [];
-    for (const flag of BX.flags) {
-      out.push(item(flag, vscode.CompletionItemKind.Property, `.${flag.replace(/-/g, '_')}()`));
-    }
-    for (const [family, table] of RAMP_TABLE) {
-      const entry = item(
-        `${family}-`,
-        vscode.CompletionItemKind.Field,
-        `a step from style.${table}`,
-      );
-      entry.command = RETRIGGER;
-      entry.sortText = `1${family}`;
-      out.push(entry);
-    }
-    for (const family of COUNTS) {
-      const entry = new vscode.CompletionItem(
-        `${family}-`,
-        vscode.CompletionItemKind.Field,
-      );
-      entry.detail = 'a whole number';
-      entry.insertText = new vscode.SnippetString(`${family}-\${1:1}`);
-      entry.sortText = `1${family}`;
-      out.push(entry);
-    }
-    for (const text of BX.texts) {
-      const entry = new vscode.CompletionItem(text.attr, vscode.CompletionItemKind.Property);
-      entry.detail = takesAColor(text.attr) ? `a colour name (${text.kind})` : text.kind;
-      entry.insertText = new vscode.SnippetString(`${text.attr}="$1"`);
-      if (takesAColor(text.attr)) entry.command = RETRIGGER;
-      entry.sortText = `2${text.attr}`;
-      out.push(entry);
-    }
-    for (const value of BX.values) {
-      // A name already offered as a flag, a ramp or a string keeps that form;
-      // `attr={code}` is the fallback for the rest.
-      if (FLAGS.has(value.attr) || RAMP_TABLE.has(value.attr) ||
-          COUNTS.has(value.attr) || TEXT_KIND.has(value.attr)) {
-        continue;
-      }
-      const entry = new vscode.CompletionItem(value.attr, vscode.CompletionItemKind.Property);
-      entry.detail = value.takes;
-      entry.insertText = new vscode.SnippetString(`${value.attr}={$1}`);
-      entry.sortText = `3${value.attr}`;
-      out.push(entry);
-    }
     out.push(...this.events());
+    out.push(...this.bindings());
+    for (const row of BX.reservedAttributes) {
+      const entry = fromRow(row, vscode.CompletionItemKind.Keyword, '2');
+      // `key={ }`, `ref={ }` and `attrs={ }` take an expression; `preserve`
+      // and `live` are written on their own.
+      if (row.detail.includes('{')) entry.insertText = new vscode.SnippetString(`${row.name}={$1}`);
+      out.push(entry);
+    }
+    for (const name of BX.booleanAttributes) {
+      const entry = new vscode.CompletionItem(name, vscode.CompletionItemKind.Property);
+      entry.detail = 'boolean attribute';
+      entry.documentation = new vscode.MarkdownString(
+        `Present or absent, never a string: \`${name}="false"\` is a ${name} control in ` +
+          `every browser, so latte refuses it. Write \`${name}\` on its own, or ` +
+          `\`${name}={<condition>}\`.`,
+      );
+      entry.sortText = `3${name}`;
+      out.push(entry);
+    }
+    for (const name of BX.urlAttributes) {
+      const entry = new vscode.CompletionItem(name, vscode.CompletionItemKind.Property);
+      entry.detail = 'a URL';
+      entry.documentation = new vscode.MarkdownString(
+        `Its value passes the scheme allowlist: ${BX.allowedSchemes.join(', ')}. ` +
+          'Anything else is refused in a literal and becomes `about:blank` at run time.',
+      );
+      entry.insertText = new vscode.SnippetString(`${name}="$1"`);
+      entry.sortText = `4${name}`;
+      out.push(entry);
+    }
+    for (const row of BX.namespaces) {
+      if (row.name === 'on:' || row.name === 'bind:') continue;
+      const entry = fromRow(row, vscode.CompletionItemKind.Module, '5');
+      entry.command = RETRIGGER;
+      out.push(entry);
+    }
     return out;
+  }
+
+  private values(context: BxContext): vscode.CompletionItem[] {
+    if (!URL_ATTRIBUTES.has(context.attr)) return [];
+    return BX.allowedSchemes.map((scheme) => {
+      const entry = new vscode.CompletionItem(scheme, vscode.CompletionItemKind.Value);
+      entry.detail = 'an allowed scheme';
+      entry.insertText = new vscode.SnippetString(
+        scheme === 'http' || scheme === 'https' ? `${scheme}://$1` : `${scheme}:$1`,
+      );
+      return entry;
+    });
   }
 
   private events(): vscode.CompletionItem[] {
@@ -160,27 +221,72 @@ class BxCompletionProvider implements vscode.CompletionItemProvider {
         `on:${event.event}`,
         vscode.CompletionItemKind.Event,
       );
-      entry.detail = event.signature;
+      entry.detail = `fn(e: ${event.family})`;
       entry.documentation = new vscode.MarkdownString(
-        `Calls the handler with \`${event.payload}\`, the frame and the app.`,
+        `Becomes \`b.${event.method}(seq, handler)\`, whose handler takes a ` +
+          `\`${event.family}\`.`,
       );
       entry.insertText = new vscode.SnippetString(
-        `on:${event.event}={fn(e: ${event.payload}, frame: element.Frame, ` +
-          `cx: app.App) { $0 }}`,
+        `on:${event.event}={fn(e: ${event.family}) { $0 }}`,
       );
-      entry.sortText = `4${event.event}`;
+      entry.sortText = `0${event.event}`;
       return entry;
     });
   }
 
-  private colors(): vscode.CompletionItem[] {
-    return BX.colors.map((color) => {
-      const entry = new vscode.CompletionItem(color.name, vscode.CompletionItemKind.Color);
-      // VS Code paints a swatch from the documentation when it reads as one.
-      entry.documentation = swatch(color.hex);
-      entry.detail = `#${color.hex}`;
+  private bindings(): vscode.CompletionItem[] {
+    return BX.bindings.map((row) => {
+      const entry = fromRow(row, vscode.CompletionItemKind.Field, '1');
+      entry.insertText = new vscode.SnippetString(`${row.name}={$1}`);
       return entry;
     });
+  }
+
+  private conversions(): vscode.CompletionItem[] {
+    return BX.conversions.map((name) => {
+      const entry = new vscode.CompletionItem(name, vscode.CompletionItemKind.TypeParameter);
+      entry.detail = `bind:value.${name}`;
+      entry.documentation = new vscode.MarkdownString(
+        'The compiler does not know the field\'s type, so the modifier carries the ' +
+          'conversion. A value that will not parse leaves the field alone rather than ' +
+          'writing a zero.',
+      );
+      return entry;
+    });
+  }
+
+  /** The `$` forms, offered where a `$` has just been typed in markup text. */
+  private transitions(): vscode.CompletionItem[] {
+    const out: vscode.CompletionItem[] = [];
+    for (const row of BX.blocks) {
+      const entry = fromRow(row, vscode.CompletionItemKind.Keyword, '0');
+      entry.insertText = new vscode.SnippetString(snippetFor(row.name));
+      out.push(entry);
+    }
+    for (const row of BX.interpolations) {
+      out.push(fromRow(row, vscode.CompletionItemKind.Snippet, '1'));
+    }
+    return out;
+  }
+}
+
+/** The body a `$` block is written with, so the block arrives complete. */
+function snippetFor(name: string): string {
+  switch (name) {
+    case '$if':
+      return '$if ${1:condition} {\n\t$0\n}';
+    case '$for':
+      return '$for ${1:row}: ${2:Row} in ${3:self.rows} {\n\t$0\n}';
+    case '$match':
+      return '$match ${1:value} {\n\t${2:pattern} => { $0 }\n}';
+    case '$slot':
+      return '$slot';
+    case '$html':
+      return '$html(${1:self.rendered})';
+    case 'else':
+      return 'else {\n\t$0\n}';
+    default:
+      return name;
   }
 }
 
@@ -195,68 +301,135 @@ class BxHoverProvider implements vscode.HoverProvider {
   ): vscode.Hover | undefined {
     const range = document.getWordRangeAtPosition(
       position,
-      /[A-Za-z_][A-Za-z0-9_]*(?:[-/][A-Za-z0-9_./]+)*/,
+      /\$?[A-Za-z_][A-Za-z0-9_]*(?:[-.:][A-Za-z0-9_.:-]+)*/,
     );
     if (range === undefined) return undefined;
     const word = document.getText(range);
     const text = document.getText();
-    const context = bxContextAt(text, document.offsetAt(range.start));
+    const start = document.offsetAt(range.start);
+    const context = bxContextAt(text, start);
 
-    if (context.kind === 'tag' || isTagName(text, document.offsetAt(range.start))) {
-      const tag = TAGS.get(word);
-      if (tag === undefined) return undefined;
-      return markdown(
-        range,
-        `\`<${tag.name}>\` builds \`${tag.call}\`.`,
-        tag.parent ? 'Takes attributes and children.' : tag.note,
-      );
-    }
-    if (context.kind === 'value') {
-      const hex = COLOR_HEX.get(word);
-      if (hex === undefined) return undefined;
-      return markdown(range, `\`${word}\` is \`#${hex}\`.`, '');
-    }
-    if (context.kind !== 'attr') return undefined;
-    return this.attributeHover(range, word);
-  }
-
-  private attributeHover(range: vscode.Range, word: string): vscode.Hover | undefined {
-    if (word.startsWith('on:')) {
-      const event = EVENTS.get(word.slice(3));
-      if (event === undefined) return undefined;
-      return markdown(
-        range,
-        `\`on:${event.event}\` takes \`${event.signature}\`.`,
-        `The handler is called with \`${event.payload}\`.`,
-      );
-    }
-    if (FLAGS.has(word)) {
-      return markdown(range, `Calls \`.${word.replace(/-/g, '_')}()\`.`, '');
-    }
-    const ramp = rampFamilyOf(word);
-    if (ramp !== undefined) {
-      const step = word.slice(ramp.family.length + 1);
-      const known = (BX.stepTables[ramp.table] ?? []).includes(step);
-      return markdown(
-        range,
-        `Calls \`.${ramp.family.replace(/-/g, '_')}(style.${ramp.table}.${step})\`.`,
-        known ? '' : `\`${step}\` is not a step of \`style.${ramp.table}\`.`,
-      );
-    }
-    const kind = TEXT_KIND.get(word);
-    if (kind !== undefined) {
-      return markdown(
-        range,
-        `\`${word}="…"\` takes ${takesAColor(word) ? 'a colour name' : kind}.`,
-        '',
-      );
-    }
-    const takes = VALUE_TAKES.get(word);
-    if (takes !== undefined) {
-      return markdown(range, `\`${word}={…}\` takes \`${takes}\`.`, '');
+    if (context.kind === 'tag' || isTagName(text, start)) return tagHover(range, word);
+    if (context.kind === 'attr') return attributeHover(range, word, context.tag);
+    if (context.kind === 'text' && word.startsWith('$')) {
+      const row = BLOCKS.get(word) ?? INTERPOLATIONS.get(word);
+      if (row === undefined) return undefined;
+      return markdown(range, `\`${row.detail}\``, row.note);
     }
     return undefined;
   }
+}
+
+function tagHover(range: vscode.Range, tag: string): vscode.Hover | undefined {
+  if (namesAComponent(tag)) {
+    return markdown(
+      range,
+      `\`<${tag}>\` is a component.`,
+      'The last dotted segment is capitalised, so latte emits ' +
+        `\`b.component<${tag}>(seq, setter)\` and beansc resolves the name. Its ` +
+        'attributes are its Beans parameters, by their Beans names.',
+    );
+  }
+  const rule = elementRule(tag);
+  if (rule === '') return undefined;
+  return markdown(range, `\`<${tag}>\``, rule);
+}
+
+function attributeHover(
+  range: vscode.Range,
+  word: string,
+  tag: string,
+): vscode.Hover | undefined {
+  if (word.startsWith('on:')) {
+    const name = word.slice(3);
+    const event = EVENTS.get(name);
+    if (event === undefined) {
+      return markdown(
+        range,
+        `\`${word}\` is not an event latte has.`,
+        `The table is ${BX.events.map((e) => e.event).join(', ')}.`,
+      );
+    }
+    if (namesAComponent(tag)) {
+      return markdown(
+        range,
+        `\`${word}\` is a DOM event and \`<${tag}>\` is a component.`,
+        `A component reports an event through a Callback parameter, written ` +
+          `\`on_${name}={...}\` with the name its author gave it.`,
+      );
+    }
+    return markdown(
+      range,
+      `\`${word}={fn(e: ${event.family}) { ... }}\``,
+      `Becomes \`b.${event.method}(seq, handler)\`.`,
+    );
+  }
+
+  const binding = bindingOf(word);
+  if (binding !== undefined) {
+    const row = BINDINGS.get(`bind:${binding.target}`);
+    if (row === undefined) {
+      return markdown(
+        range,
+        `\`bind:${binding.target}\` is not a binding latte has.`,
+        `The two are ${BX.bindings.map((b) => b.name).join(' and ')}.`,
+      );
+    }
+    if (binding.conversion !== '' && !BX.conversions.includes(binding.conversion)) {
+      return markdown(
+        range,
+        `\`.${binding.conversion}\` is not a conversion \`${row.name}\` takes.`,
+        `The three are ${BX.conversions.join(', ')}.`,
+      );
+    }
+    return markdown(range, `\`${row.name}\` on ${row.detail}`, row.note);
+  }
+
+  const reserved = RESERVED.get(word);
+  if (reserved !== undefined) {
+    return markdown(range, `\`${reserved.detail}\``, reserved.note);
+  }
+
+  const colon = word.indexOf(':');
+  if (colon > 0) {
+    const namespace = NAMESPACES.get(`${word.slice(0, colon)}:`);
+    if (namespace === undefined) {
+      return markdown(
+        range,
+        `\`${word}\` uses an attribute namespace latte does not have.`,
+        `The list is ${BX.namespaces.map((n) => n.name).join(', ')}.`,
+      );
+    }
+    return markdown(range, `\`${namespace.detail}\``, namespace.note);
+  }
+
+  if (BOOLEAN_ATTRIBUTES.has(word.toLowerCase())) {
+    return markdown(
+      range,
+      `\`${word}\` is a boolean attribute: present or absent, never a string.`,
+      `\`${word}="false"\` is a ${word} control in every browser, so latte refuses ` +
+        `the string form. Write \`${word}\` on its own, or \`${word}={<condition>}\`.`,
+    );
+  }
+  if (URL_ATTRIBUTES.has(word.toLowerCase())) {
+    return markdown(
+      range,
+      `\`${word}\` carries a URL.`,
+      `Its scheme must be one of ${BX.allowedSchemes.join(', ')}; anything else is ` +
+        'refused in a literal and becomes `about:blank` at run time.',
+    );
+  }
+  // latte refuses every attribute three bytes or longer whose name starts with
+  // `on`, not only the ones HTML defines — an inline handler exists as an id
+  // and the client never evaluates a string.
+  if (word.length >= 3 && word.toLowerCase().startsWith('on') && !namesAComponent(tag)) {
+    return markdown(
+      range,
+      `\`${word}\` starts with \`on\`, and latte refuses every attribute whose name does.`,
+      'Rename it, or write `on:<event>={...}` if you meant a handler.',
+    );
+  }
+  return undefined;
 }
 
 function markdown(range: vscode.Range, head: string, note: string): vscode.Hover {
@@ -270,92 +443,15 @@ function isTagName(text: string, offset: number): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Colour swatches
-// ---------------------------------------------------------------------------
-
-/** `attr="value"` inside a tag, wherever it appears. */
-const ATTRIBUTE_VALUE = /\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"([^"\n]*)"/g;
-
-/**
- * A swatch beside every colour a tag names, and a picker that writes the name
- * back when one exists for the colour chosen.
- */
-class BxColorProvider implements vscode.DocumentColorProvider {
-  provideDocumentColors(document: vscode.TextDocument): vscode.ColorInformation[] {
-    const text = document.getText();
-    const out: vscode.ColorInformation[] = [];
-    for (const match of text.matchAll(ATTRIBUTE_VALUE)) {
-      const attr = match[1] as string;
-      const value = match[2] as string;
-      if (!takesAColor(attr)) continue;
-      const start = (match.index ?? 0) + match[0].length - value.length - 1;
-      if (bxContextAt(text, start).kind !== 'value') continue;
-      const hex = COLOR_HEX.get(value) ?? hexLiteral(value);
-      if (hex === undefined) continue;
-      out.push(
-        new vscode.ColorInformation(
-          new vscode.Range(
-            document.positionAt(start),
-            document.positionAt(start + value.length),
-          ),
-          colorOf(hex),
-        ),
-      );
-    }
-    return out;
-  }
-
-  provideColorPresentations(
-    color: vscode.Color,
-    context: { range: vscode.Range },
-  ): vscode.ColorPresentation[] {
-    const byte = (v: number): string =>
-      Math.round(Math.min(1, Math.max(0, v)) * 255)
-        .toString(16)
-        .padStart(2, '0');
-    const packed = `${byte(color.red)}${byte(color.green)}${byte(color.blue)}${byte(color.alpha)}`;
-    const out: vscode.ColorPresentation[] = [];
-    // A name, when the colour is exactly one bx knows: `bg="red"` reads better
-    // than the hex, and it is what the table resolves at compile time anyway.
-    for (const [name, hex] of COLOR_HEX) {
-      if (hex === packed) {
-        const named = new vscode.ColorPresentation(name);
-        named.textEdit = new vscode.TextEdit(context.range, name);
-        out.push(named);
-        break;
-      }
-    }
-    const literal = color.alpha >= 1 ? `#${packed.slice(0, 6)}` : `#${packed}`;
-    const hex = new vscode.ColorPresentation(literal);
-    hex.textEdit = new vscode.TextEdit(context.range, literal);
-    out.push(hex);
-    return out;
-  }
-}
-
-/** `#rgb`, `#rrggbb` or `#rrggbbaa` as bx's packed `rrggbbaa`. */
-function hexLiteral(value: string): string | undefined {
-  const match = /^#([0-9a-fA-F]{3,8})$/.exec(value.trim());
-  if (match === null) return undefined;
-  const digits = (match[1] as string).toLowerCase();
-  if (digits.length === 3) {
-    const [r, g, b] = digits;
-    return `${r}${r}${g}${g}${b}${b}ff`;
-  }
-  if (digits.length === 6) return `${digits}ff`;
-  if (digits.length === 8) return digits;
-  return undefined;
-}
-
-// ---------------------------------------------------------------------------
 // Closing a tag as it is typed
 // ---------------------------------------------------------------------------
 
 /**
  * Types `</div>` when `<div …>` is completed, the way an HTML editor does.
  *
- * Only for a tag bx knows and only for one that can hold a child: `<empty>`
- * cannot, so closing it would write markup bx is about to refuse.
+ * Not for a void element: latte reads `<br>` as complete and closed, so a
+ * `</br>` after it is a closing tag with nothing open. That list is latte's,
+ * which is the only reason this can be right about it.
  */
 export function closeTagOnType(
   event: vscode.TextDocumentChangeEvent,
@@ -374,8 +470,7 @@ export function closeTagOnType(
   if (text[closed - 2] === '/') return undefined;
   const open = openTagBefore(text, closed);
   if (open === undefined) return undefined;
-  const tag = TAGS.get(open);
-  if (tag === undefined || !tag.parent) return undefined;
+  if (VOID_ELEMENTS.has(open.toLowerCase())) return undefined;
 
   const at = event.document.positionAt(closed);
   return editor
@@ -390,20 +485,17 @@ export function closeTagOnType(
 }
 
 /** The tag whose `>` sits at `offset`, or undefined when none does. */
-function openTagBefore(text: string, offset: number): string | undefined {
+export function openTagBefore(text: string, offset: number): string | undefined {
   // The `>` is already in the buffer; ask what the character before it was in.
   const context = bxContextAt(text, offset - 1);
-  return context.kind === 'attr' || context.kind === 'tag'
-    ? context.tag === ''
-      ? tagNameAt(text, offset)
-      : context.tag
-    : undefined;
+  if (context.kind !== 'attr' && context.kind !== 'tag') return undefined;
+  return context.tag === '' ? tagNameAt(text, offset) : context.tag;
 }
 
 /** The name of the tag being opened, read back from the `<`. */
 function tagNameAt(text: string, offset: number): string | undefined {
   const head = text.slice(Math.max(0, offset - 256), offset);
-  const match = /<([A-Za-z_][A-Za-z0-9_]*)[^<>]*>$/.exec(head);
+  const match = /<([A-Za-z_][A-Za-z0-9_.:-]*)[^<>]*>$/.exec(head);
   return match === null ? undefined : match[1];
 }
 
@@ -417,15 +509,16 @@ export function registerBx(context: vscode.ExtensionContext): void {
     vscode.languages.registerCompletionItemProvider(
       selector,
       new BxCompletionProvider(),
-      // `<` opens a tag, `:` follows `on`, `-` starts a step, `"` opens a
-      // colour: every one of them is a point where the list changes.
+      // `<` opens a tag, `$` opens a block or an interpolation, `:` follows
+      // `on` and `bind`, `.` follows `bind:value`, `"` opens a URL: every one
+      // of them is a point where the list changes.
       '<',
+      '$',
       ':',
-      '-',
+      '.',
       '"',
     ),
     vscode.languages.registerHoverProvider(selector, new BxHoverProvider()),
-    vscode.languages.registerColorProvider(selector, new BxColorProvider()),
     vscode.workspace.onDidChangeTextDocument((event) => {
       void closeTagOnType(event);
     }),

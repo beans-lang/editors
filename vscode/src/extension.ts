@@ -6,9 +6,9 @@
 // Debugging works the same way: `beansc debug-adapter` speaks DAP, and the
 // extension only finds it and starts it.
 //
-// The one exception is `.bx` markup. Tags are crema's, not the language's, so
-// `beansc` has never heard of them and cannot be asked; src/bx.ts answers
-// those from crema's own tables and nothing else.
+// The one exception is `.bx` markup. A `.bx` file is a latte markup document,
+// not Beans with tags in it, and `beansc` has never heard of latte — so
+// src/bx.ts answers the markup half from latte's own tables and nothing else.
 
 import * as vscode from 'vscode';
 
@@ -37,9 +37,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // no second engine in the editor either.
   registerDebugger(context, output);
 
-  // Markup is the one thing the compiler cannot answer. `.bx` is crema's, not
-  // the language's, so its tags, attributes and colour names come from crema's
-  // own tables rather than from `beansc lsp` — see src/bx.ts.
+  // Markup is the one thing the compiler cannot answer. `.bx` is latte's, not
+  // the language's, so its blocks, attributes, events and HTML rules come from
+  // latte's own tables rather than from `beansc lsp` — see src/bx.ts.
   registerBx(context);
 
   context.subscriptions.push(
