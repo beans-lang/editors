@@ -9,6 +9,8 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.6.0]
+
 ### Changed
 
 - **`.bx` is latte's markup now, and crema's `.bx` support is gone.** They were
